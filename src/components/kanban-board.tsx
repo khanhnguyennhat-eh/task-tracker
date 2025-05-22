@@ -8,7 +8,7 @@ import CreateTaskDialog from '@/components/create-task-dialog';
 import TaskDetailsDialog from '@/components/task-details-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, X, SlidersHorizontal } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/lib/use-toast';
 import { useTaskFilterParams } from '@/lib/use-task-filter-params';
@@ -30,15 +30,29 @@ export default function KanbanBoard({ initialTasks }: KanbanBoardProps) {
   const { query: initialQuery, status: initialStatus } = getFiltersFromUrl();
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'ALL'>(initialStatus);
+  const [showFilters, setShowFilters] = useState(false);
   
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
-
-  // Group tasks by status
-  const tasksByStatus = Object.values(TaskStatus).reduce((acc, status) => {
+  
+  // Group tasks by status - but only display the main workflow statuses
+  const displayStatuses = [
+    TaskStatus.IN_PROGRESS, 
+    TaskStatus.IN_TESTING,
+    TaskStatus.IN_REVIEW, 
+    TaskStatus.DONE
+  ];
+  
+  const tasksByStatus = displayStatuses.reduce((acc, status) => {
     acc[status] = filteredTasks.filter(task => task.status === status);
     return acc;
   }, {} as Record<TaskStatus, Task[]>);
+  
+  // Put planning and investigation tasks into the "In Progress" column
+  tasksByStatus[TaskStatus.IN_PROGRESS] = [
+    ...tasksByStatus[TaskStatus.IN_PROGRESS],
+    ...filteredTasks.filter(t => t.status === TaskStatus.PLANNING || t.status === TaskStatus.INVESTIGATION)
+  ];
   
   // Update tasks when initialTasks change (from server) or apply initial filters from URL parameters
   useEffect(() => {
@@ -188,84 +202,116 @@ export default function KanbanBoard({ initialTasks }: KanbanBoardProps) {
       }
     }
   };
-
+  
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Task Board</h1>
-          <p className="text-muted-foreground mt-2">
-            Organize and track tasks through your development workflow.
-          </p>
-        </div>
-        <Button 
-          onClick={() => setIsCreateDialogOpen(true)}
-          className="w-full md:w-auto"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          New Task
-        </Button>
-      </div>
-
+    <div className="space-y-6">
       {/* Search and Filters */}
-      <div className="grid gap-4 md:grid-cols-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <form 
           onSubmit={handleSearch}
-          className="relative md:col-span-5"
+          className="relative max-w-[320px] w-full"
         >
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search tasks..."
-            className="pl-9"
+            className="pl-9 pr-10 h-10 bg-background/70 border rounded-lg"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
+          {searchQuery && (
+            <button 
+              type="button"
+              onClick={() => {
+                setSearchQuery('');
+                applyFilters('', statusFilter);
+              }}
+              className="absolute right-3 top-2.5"
+            >
+              <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+            </button>
+          )}
         </form>
         
-        <div className="md:col-span-2">
-          <select 
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            value={statusFilter}
-            onChange={handleStatusFilterChange}
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-10 gap-1.5"
+            onClick={() => setShowFilters(!showFilters)}
           >
-            <option value="ALL">All Statuses</option>
-            {Object.values(TaskStatus).map(status => (
-              <option key={status} value={status}>
-                {formatStatus(status)}
-              </option>
-            ))}
-          </select>
+            <SlidersHorizontal className="h-4 w-4" />
+            Filters
+            {statusFilter !== 'ALL' && (
+              <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
+                1
+              </span>
+            )}
+          </Button>
+
+          <Button
+            onClick={() => setIsCreateDialogOpen(true)}
+            size="sm"
+            className="h-10 gap-1.5"
+          >
+            <Plus className="h-4 w-4" />
+            New Task
+          </Button>
         </div>
-        
-        <Button 
-          variant="outline" 
-          onClick={resetFilters}
-          className="md:col-span-1"
-        >
-          Reset
-        </Button>
       </div>
+      
+      {/* Expanded Filters */}
+      {showFilters && (
+        <div className="bg-background border rounded-lg p-4 flex flex-wrap gap-4 items-center justify-between">
+          <div className="flex flex-wrap items-center gap-4">
+            <div>
+              <label className="text-sm text-muted-foreground block mb-1">
+                Status
+              </label>
+              <select 
+                className="rounded-md border border-input bg-background px-3 py-2 h-9 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 min-w-[180px]"
+                value={statusFilter}
+                onChange={handleStatusFilterChange}
+              >
+                <option value="ALL">All Statuses</option>
+                {Object.values(TaskStatus).map(status => (
+                  <option key={status} value={status}>
+                    {formatStatus(status)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          
+          <Button
+            variant="outline"
+            onClick={resetFilters}
+            size="sm"
+            className="h-9"
+          >
+            Reset Filters
+          </Button>
+        </div>
+      )}
 
       {/* Kanban Board */}
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex space-x-4 pb-8 overflow-x-auto snap-x">
-          {Object.values(TaskStatus).map(status => (
+        <div className="flex gap-6 pb-8 overflow-x-auto">
+          {displayStatuses.map(status => (
             <Droppable key={status} droppableId={status}>
               {(provided, snapshot) => (
                 <div
                   ref={provided.innerRef}
                   {...provided.droppableProps}
-                  className={`flex flex-col h-full w-[280px] min-w-[280px] border rounded-lg overflow-hidden shadow-sm ${getStatusColor(status)}`}
+                  className={`flex flex-col h-full min-w-[320px] w-[320px] border rounded-xl ${getStatusColor(status)}`}
                 >
-                  <div className="p-3 border-b bg-card">
-                    <h3 className="font-semibold text-center">{formatStatus(status)}</h3>
-                    <div className="text-xs text-center text-muted-foreground mt-1">
-                      {tasksByStatus[status].length} tasks
+                  <div className="p-4 border-b">
+                    <h3 className="font-semibold">{formatStatus(status)}</h3>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {tasksByStatus[status].length} task{tasksByStatus[status].length !== 1 && 's'}
                     </div>
                   </div>
                   
-                  <div className="flex-1 overflow-y-auto p-2 space-y-2 min-h-[200px]">
+                  <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-[60vh]">
                     {tasksByStatus[status].map((task, index) => (
                       <Draggable 
                         key={task.id} 
@@ -296,7 +342,7 @@ export default function KanbanBoard({ initialTasks }: KanbanBoardProps) {
                     
                     {tasksByStatus[status].length === 0 && (
                       <div className="flex items-center justify-center h-24 text-sm text-muted-foreground">
-                        No tasks in this status
+                        No tasks
                       </div>
                     )}
                   </div>
