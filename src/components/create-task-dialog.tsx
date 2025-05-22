@@ -6,15 +6,16 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useRouter } from 'next/navigation';
+import { useTaskUpdates } from '@/lib/useTaskUpdates';
 
 export default function CreateTaskDialog({
-  open,
-  onOpenChange,
+  open,  onOpenChange,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
   const router = useRouter();
+  const { refreshData } = useTaskUpdates();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
@@ -53,14 +54,12 @@ export default function CreateTaskDialog({
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || 'Failed to create task');
-      }
-
-      // Reset form and close dialog
+      }      // Reset form and close dialog
       setFormData({ title: '', description: '' });
-      onOpenChange(false);
-      
+      onOpenChange(false);      
       // Refresh the task list
       router.refresh();
+      refreshData(); // Call our custom refresh function
     } catch (error) {
       console.error('Error creating task:', error);
     } finally {

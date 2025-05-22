@@ -7,7 +7,7 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const taskId = params.id;
+    const taskId = await params.id;
     const { status, notes } = await req.json();
 
     // Validate required fields

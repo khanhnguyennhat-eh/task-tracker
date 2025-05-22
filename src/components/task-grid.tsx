@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import TaskCard from '@/components/task-card';
@@ -8,12 +8,14 @@ import CreateTaskDialog from '@/components/create-task-dialog';
 import TaskDetailsDialog from '@/components/task-details-dialog';
 import { Task, TaskStatus } from '@/lib/types';
 import { Plus, Search } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface TaskGridProps {
   initialTasks: Task[];
 }
 
 export default function TaskGrid({ initialTasks }: TaskGridProps) {
+  const router = useRouter();
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [filteredTasks, setFilteredTasks] = useState<Task[]>(initialTasks);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -21,6 +23,27 @@ export default function TaskGrid({ initialTasks }: TaskGridProps) {
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'ALL'>('ALL');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+
+  // Update tasks when initialTasks change (from server)
+  useEffect(() => {
+    setTasks(initialTasks);
+    // Re-apply any active filters
+    applyFilters(searchQuery, statusFilter, initialTasks);
+  }, [initialTasks]);
+
+  // Refresh data periodically
+  useEffect(() => {
+    const interval = setInterval(() => {
+      router.refresh();
+    }, 5000); // Refresh every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [router]);
+
+  // Handle manual refresh when data changes
+  const refreshData = () => {
+    router.refresh();
+  };
 
   // Handle search and filtering
   const handleSearch = (e: React.FormEvent) => {
@@ -34,8 +57,8 @@ export default function TaskGrid({ initialTasks }: TaskGridProps) {
     applyFilters(searchQuery, newFilter);
   };
 
-  const applyFilters = (query: string, status: TaskStatus | 'ALL') => {
-    let filtered = tasks;
+  const applyFilters = (query: string, status: TaskStatus | 'ALL', taskList = tasks) => {
+    let filtered = taskList;
 
     // Apply status filter
     if (status !== 'ALL') {

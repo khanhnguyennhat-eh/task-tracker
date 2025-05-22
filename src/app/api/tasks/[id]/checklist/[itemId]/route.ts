@@ -6,7 +6,7 @@ export async function PUT(
   { params }: { params: { id: string; itemId: string } }
 ) {
   try {
-    const { id: taskId, itemId } = params;
+    const { id: taskId, itemId } = await params;
     const { checked } = await req.json();
 
     // Validate

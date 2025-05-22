@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { formatDistanceToNow, format } from 'date-fns';
 import { Task, TaskStatus, StatusHistory, PRChecklistItem } from '@/lib/types';
 import { useRouter } from 'next/navigation';
+import { useTaskUpdates } from '@/lib/useTaskUpdates';
 
 interface TaskDetailsDialogProps {
   task: Task | null;
@@ -17,10 +18,10 @@ interface TaskDetailsDialogProps {
 
 export default function TaskDetailsDialog({ 
   task, 
-  open, 
-  onOpenChange 
+  open,   onOpenChange 
 }: TaskDetailsDialogProps) {
   const router = useRouter();
+  const { refreshData } = useTaskUpdates();
   const [statusNotes, setStatusNotes] = useState('');
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isUpdatingChecklist, setIsUpdatingChecklist] = useState(false);
@@ -106,12 +107,11 @@ export default function TaskDetailsDialog({
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Failed to update status');
-      }
-      
-      // Reset form and refresh page
+      }      // Reset form and refresh page
       setStatusNotes('');
       onOpenChange(false);
       router.refresh();
+      refreshData(); // Call our custom refresh function
     } catch (error) {
       console.error('Error updating task status:', error);
       alert('Failed to update task status. ' + error);
@@ -137,11 +137,11 @@ export default function TaskDetailsDialog({
       
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to update checklist item');
-      }
+        throw new Error(error.error || 'Failed to update checklist item');      }
       
       // Refresh page
       router.refresh();
+      refreshData(); // Call our custom refresh function
     } catch (error) {
       console.error('Error updating checklist item:', error);
     } finally {
@@ -149,38 +149,71 @@ export default function TaskDetailsDialog({
     }
   };
 
+  // Get the badge color for timeline dots
+  const getBadgeColor = (status: TaskStatus): string => {
+    // Return tailwind class names for background color
+    switch (status) {
+      case TaskStatus.INVESTIGATION:
+        return 'bg-status-investigation';
+      case TaskStatus.PLANNING:
+        return 'bg-status-planning';
+      case TaskStatus.IN_PROGRESS:
+        return 'bg-status-in-progress';
+      case TaskStatus.IN_TESTING:
+        return 'bg-status-in-testing';
+      case TaskStatus.IN_REVIEW:
+        return 'bg-status-in-review';
+      case TaskStatus.DONE:
+        return 'bg-status-done';
+      default:
+        return 'bg-primary';
+    }
+  };
+
   if (!task) return null;
   
   const nextStatus = getNextStatus(task.status);
-  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <div className="flex justify-between items-start gap-4">
-            <DialogTitle className="text-2xl">{task.title}</DialogTitle>
-            <Badge variant={getStatusVariant(task.status)} className="text-sm">
-              {formatStatus(task.status)}
-            </Badge>
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto p-0">
+        {/* Dialog Header with Task Title and Status Badge */}
+        <DialogHeader className="px-6 pt-6 pb-4 sticky top-0 bg-background z-10 border-b">
+          <div className="flex flex-col space-y-2">
+            <div className="flex items-start justify-between gap-4">
+              <DialogTitle className="text-xl font-bold leading-tight mr-8">
+                {task.title}
+              </DialogTitle>
+              <Badge 
+                variant={getStatusVariant(task.status)} 
+                className="text-sm mt-1 shrink-0"
+              >
+                {formatStatus(task.status)}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Created {formatDistanceToNow(new Date(task.createdAt))} ago</span>
+              <span className="font-mono">ID: {task.id}</span>
+            </div>
           </div>
         </DialogHeader>
         
-        <div className="space-y-6 my-4">
+        {/* Main Content Area */}
+        <div className="px-6 py-4 space-y-8">
           {/* Task Description */}
-          <div>
-            <h3 className="text-lg font-medium mb-2">Description</h3>
-            <div className="bg-muted/40 rounded-md p-4 whitespace-pre-wrap text-sm">
+          <div className="space-y-3">
+            <h3 className="text-base font-semibold">Description</h3>
+            <div className="bg-muted/30 rounded-lg p-4 whitespace-pre-wrap text-sm">
               {task.description}
             </div>
           </div>
           
           {/* PR Checklist (only for in-review status) */}
           {task.status === TaskStatus.IN_REVIEW && (
-            <div>
-              <h3 className="text-lg font-medium mb-2">PR Checklist</h3>
-              <div className="bg-muted/40 rounded-md p-4 space-y-2">
+            <div className="space-y-3">
+              <h3 className="text-base font-semibold">PR Checklist</h3>
+              <div className="bg-muted/30 rounded-lg p-4 space-y-3">
                 {task.prChecklist.map((item: PRChecklistItem) => (
-                  <div key={item.id} className="flex items-start gap-2">
+                  <div key={item.id} className="flex items-start gap-3">
                     <input
                       type="checkbox"
                       id={`checklist-${item.id}`}
@@ -189,7 +222,10 @@ export default function TaskDetailsDialog({
                       disabled={isUpdatingChecklist || task.status === TaskStatus.DONE}
                       className="mt-1"
                     />
-                    <label htmlFor={`checklist-${item.id}`} className="text-sm">
+                    <label 
+                      htmlFor={`checklist-${item.id}`} 
+                      className="text-sm break-words flex-1 cursor-pointer"
+                    >
                       {item.text}
                     </label>
                   </div>
@@ -200,25 +236,27 @@ export default function TaskDetailsDialog({
           
           {/* Status Update Form (if not done) */}
           {nextStatus && (
-            <div>
-              <h3 className="text-lg font-medium mb-2">Update Status</h3>
-              <div className="bg-muted/40 rounded-md p-4 space-y-3">
-                <div className="flex gap-2 items-center">
-                  <span className="text-sm">Current status:</span>
-                  <Badge variant={getStatusVariant(task.status)}>
-                    {formatStatus(task.status)}
-                  </Badge>
+            <div className="space-y-3">
+              <h3 className="text-base font-semibold">Update Status</h3>
+              <div className="bg-muted/30 rounded-lg p-4 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <span className="text-sm font-medium block">Current status:</span>
+                    <Badge variant={getStatusVariant(task.status)}>
+                      {formatStatus(task.status)}
+                    </Badge>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <span className="text-sm font-medium block">Next status:</span>
+                    <Badge variant={getStatusVariant(nextStatus)}>
+                      {formatStatus(nextStatus)}
+                    </Badge>
+                  </div>
                 </div>
                 
-                <div className="flex gap-2 items-center">
-                  <span className="text-sm">Next status:</span>
-                  <Badge variant={getStatusVariant(nextStatus)}>
-                    {formatStatus(nextStatus)}
-                  </Badge>
-                </div>
-                
-                <div className="space-y-1">
-                  <label htmlFor="status-notes" className="text-sm font-medium">
+                <div className="space-y-2 pt-2">
+                  <label htmlFor="status-notes" className="text-sm font-medium block">
                     Notes (required)
                   </label>
                   <Textarea
@@ -226,7 +264,8 @@ export default function TaskDetailsDialog({
                     value={statusNotes}
                     onChange={(e) => setStatusNotes(e.target.value)}
                     placeholder={`What did you do during the ${formatStatus(task.status)} phase?`}
-                    rows={4}
+                    rows={3}
+                    className="resize-none w-full"
                   />
                 </div>
                 
@@ -244,36 +283,44 @@ export default function TaskDetailsDialog({
           )}
           
           {/* Status History Timeline */}
-          <div>
-            <h3 className="text-lg font-medium mb-2">History</h3>
-            <div className="space-y-3">
-              {task.statusHistory.map((history: StatusHistory) => (
+          <div className="space-y-3">
+            <h3 className="text-base font-semibold">History</h3>
+            <div className="pl-4 space-y-0">
+              {task.statusHistory.map((history: StatusHistory, index: number) => (
                 <div 
                   key={history.id} 
-                  className="relative pl-5 pb-3 border-l-2 border-muted last:border-transparent"
-                >
-                  <div className="absolute w-3 h-3 bg-primary rounded-full -left-[7px]" />
-                  <div className="flex justify-between items-start">
-                    <Badge variant={getStatusVariant(history.status)}>
+                  className={`relative pl-6 pt-2 pb-6 border-l-2 ${
+                    index === task.statusHistory.length - 1 
+                      ? 'border-transparent' 
+                      : 'border-muted-foreground/20'
+                  }`}
+                >                  {/* Timeline dot */}
+                  <div 
+                    className={`absolute w-4 h-4 rounded-full -left-[9px] top-3 border-2 border-background ${getBadgeColor(history.status)}`}
+                  />
+                  
+                  {/* Status header with badge and date */}
+                  <div className="flex flex-wrap justify-between items-center gap-2 mb-2">
+                    <Badge 
+                      variant={getStatusVariant(history.status)} 
+                      className="px-2.5 py-1"
+                    >
                       {formatStatus(history.status)}
                     </Badge>
                     <span className="text-xs text-muted-foreground">
                       {format(new Date(history.createdAt), 'MMM d, yyyy h:mm a')}
                     </span>
                   </div>
-                  <p className="mt-2 text-sm whitespace-pre-wrap">{history.notes}</p>
+                  
+                  {/* Status notes */}
+                  <div className="mt-2 text-sm whitespace-pre-wrap break-words bg-muted/20 p-3 rounded-md">
+                    {history.notes}
+                  </div>
                 </div>
               ))}
             </div>
           </div>
         </div>
-        
-        <DialogFooter>
-          <div className="w-full flex justify-between items-center text-xs text-muted-foreground">
-            <span>Created {formatDistanceToNow(new Date(task.createdAt))} ago</span>
-            <span>ID: {task.id}</span>
-          </div>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
