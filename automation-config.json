@@ -1,0 +1,168 @@
+{
+  "automationRules": {
+    "version": "1.0",
+    "description": "Automation rules for Task Tracker development",
+    "presets": {
+      "testImplementation": {
+        "description": "Automatically run tests after implementation",
+        "commands": [
+          {
+            "command": "npm run dev",
+            "description": "Start development server",
+            "runAutomatically": true,
+            "background": true,
+            "timeout": 10000
+          },
+          {
+            "command": "npm run lint",
+            "description": "Run linting",
+            "runAutomatically": true,
+            "background": false,
+            "timeout": 5000
+          }
+        ]
+      },
+      "featureImplementation": {
+        "description": "Automatically create necessary folders and files for new features",
+        "commands": [
+          {
+            "command": "New-Item -Path \"docs/checklists\" -ItemType Directory -Force",
+            "description": "Ensure checklist directory exists",
+            "runAutomatically": true,
+            "background": false
+          },
+          {
+            "command": "Copy-Item \"docs/task-completion-checklist.md\" -Destination \"docs/checklists/{{featureName}}-checklist.md\"",
+            "description": "Create feature-specific checklist",
+            "runAutomatically": true,
+            "background": false,
+            "requiresInput": "featureName"
+          }
+        ]
+      },
+      "documentationUpdate": {
+        "description": "Automatically update planning document when a feature is complete",
+        "commands": [
+          {
+            "command": "(Get-Content -Path \"docs/next-planning.md\") -replace \"\\[ \\] {{featureName}}\", \"[x] {{featureName}}\" | Set-Content -Path \"docs/next-planning.md\"",
+            "description": "Mark feature as completed in planning document",
+            "runAutomatically": true,
+            "background": false,
+            "requiresInput": "featureName"
+          }
+        ]
+      },
+      "dependencyInstallation": {
+        "description": "Install dependencies automatically",
+        "commands": [
+          {
+            "command": "npm install {{packageName}}",
+            "description": "Install package",
+            "runAutomatically": true,
+            "background": false,
+            "requiresInput": "packageName"
+          }
+        ]
+      }
+    },
+    "triggers": {
+      "onFeatureStart": {
+        "presets": ["featureImplementation"],
+        "inputPrompt": "Enter the name of the feature you're starting:"
+      },
+      "onFeatureComplete": {
+        "presets": ["documentationUpdate"],
+        "inputPrompt": "Enter the name of the feature you've completed:"
+      },
+      "onImplementationTest": {
+        "presets": ["testImplementation"]
+      },
+      "onDependencyRequired": {
+        "presets": ["dependencyInstallation"],
+        "inputPrompt": "Enter the name of the package to install:"
+      }
+    },
+    "security": {
+      "allowedCommands": [
+        "npm run *",
+        "npm install *",
+        "New-Item *",
+        "Copy-Item *",
+        "Get-Content *",
+        "Set-Content *"
+      ],
+      "restrictedCommands": [
+        "rm -rf *",
+        "Remove-Item -Recurse -Force /"
+      ]
+    }
+  },
+  "vscodeIntegration": {
+    "commands": [
+      {
+        "command": "task-tracker.startFeature",
+        "title": "Task Tracker: Start Feature Implementation",
+        "trigger": "onFeatureStart"
+      },
+      {
+        "command": "task-tracker.completeFeature",
+        "title": "Task Tracker: Complete Feature Implementation",
+        "trigger": "onFeatureComplete"
+      },
+      {
+        "command": "task-tracker.testImplementation",
+        "title": "Task Tracker: Test Implementation",
+        "trigger": "onImplementationTest"
+      },
+      {
+        "command": "task-tracker.installDependency",
+        "title": "Task Tracker: Install Dependency",
+        "trigger": "onDependencyRequired"
+      }
+    ],
+    "keybindings": [
+      {
+        "key": "ctrl+shift+f1",
+        "command": "task-tracker.startFeature"
+      },
+      {
+        "key": "ctrl+shift+f2",
+        "command": "task-tracker.completeFeature"
+      },
+      {
+        "key": "ctrl+shift+f3",
+        "command": "task-tracker.testImplementation"
+      },
+      {
+        "key": "ctrl+shift+f4",
+        "command": "task-tracker.installDependency"
+      }
+    ]
+  },
+  "taskDefinitions": {
+    "implementFeature": {
+      "steps": [
+        {
+          "description": "Create feature-specific checklist",
+          "preset": "featureImplementation"
+        },
+        {
+          "description": "Check planning document",
+          "manual": true
+        },
+        {
+          "description": "Implement feature code",
+          "manual": true
+        },
+        {
+          "description": "Test implementation",
+          "preset": "testImplementation"
+        },
+        {
+          "description": "Update documentation",
+          "preset": "documentationUpdate"
+        }
+      ]
+    }
+  }
+}

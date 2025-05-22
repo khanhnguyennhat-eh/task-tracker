@@ -1,0 +1,108 @@
+{
+  "name": "task-tracker-automation",
+  "version": "1.0.0",
+  "displayName": "Task Tracker Automation",
+  "description": "Automation for Task Tracker development workflow",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "workspaceContains:automation-config.json"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "task-tracker.startFeature",
+        "title": "Task Tracker: Start Feature Implementation"
+      },
+      {
+        "command": "task-tracker.completeFeature",
+        "title": "Task Tracker: Complete Feature Implementation"
+      },
+      {
+        "command": "task-tracker.testImplementation",
+        "title": "Task Tracker: Test Implementation"
+      },
+      {
+        "command": "task-tracker.installDependency",
+        "title": "Task Tracker: Install Dependency"
+      }
+    ],
+    "keybindings": [
+      {
+        "key": "ctrl+shift+f1",
+        "command": "task-tracker.startFeature"
+      },
+      {
+        "key": "ctrl+shift+f2",
+        "command": "task-tracker.completeFeature"
+      },
+      {
+        "key": "ctrl+shift+f3",
+        "command": "task-tracker.testImplementation"
+      },
+      {
+        "key": "ctrl+shift+f4",
+        "command": "task-tracker.installDependency"
+      }
+    ],
+    "taskDefinitions": [
+      {
+        "type": "task-tracker",
+        "required": [
+          "action"
+        ],
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "The automation action to perform"
+          },
+          "featureName": {
+            "type": "string",
+            "description": "Name of the feature to work with"
+          },
+          "packageName": {
+            "type": "string",
+            "description": "Name of the package to install"
+          }
+        }
+      }
+    ],
+    "tasks": [
+      {
+        "label": "Start Feature Implementation",
+        "type": "task-tracker",
+        "action": "start-feature",
+        "problemMatcher": []
+      },
+      {
+        "label": "Complete Feature Implementation",
+        "type": "task-tracker",
+        "action": "complete-feature",
+        "problemMatcher": []
+      },
+      {
+        "label": "Test Implementation",
+        "type": "task-tracker",
+        "action": "test",
+        "problemMatcher": []
+      },
+      {
+        "label": "Install Dependency",
+        "type": "task-tracker",
+        "action": "install",
+        "problemMatcher": []
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "package": "webpack --mode production --devtool hidden-source-map",
+    "compile": "webpack --mode development",
+    "watch": "webpack --mode development --watch"
+  }
+}
