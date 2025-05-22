@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useRouter } from 'next/navigation';
-import { useTaskUpdates } from '@/lib/useTaskUpdates';
+import { useTaskUpdates } from '@/lib/use-task-updates';
 import { useToast } from '@/lib/use-toast';
 
 export default function CreateTaskDialog({

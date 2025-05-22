@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatDistanceToNow } from 'date-fns';
 import { Task, TaskStatus } from '@/lib/types';
+import { formatStatus, getStatusVariant } from '@/lib/utils';
 
 interface TaskCardProps {
   task: Task;
@@ -36,47 +37,7 @@ export default function TaskCard({ task, onClick, isKanban = false, isDraggable 
       setMouseDownPos(null);
     } else {
       onClick();
-    }
-  };
-  // Format the status for display
-  const formatStatus = (status: TaskStatus): string => {
-    switch (status) {
-      case TaskStatus.INVESTIGATION:
-        return 'Investigation';
-      case TaskStatus.PLANNING:
-        return 'Planning';
-      case TaskStatus.IN_PROGRESS:
-        return 'In Progress';
-      case TaskStatus.IN_TESTING:
-        return 'In Testing';
-      case TaskStatus.IN_REVIEW:
-        return 'In Review';
-      case TaskStatus.DONE:
-        return 'Done';
-      default:
-        return status;
-    }
-  };
-
-  // Get status badge variant
-  const getStatusVariant = (status: TaskStatus) => {
-    switch (status) {
-      case TaskStatus.INVESTIGATION:
-        return 'investigation';
-      case TaskStatus.PLANNING:
-        return 'planning';
-      case TaskStatus.IN_PROGRESS:
-        return 'in-progress';
-      case TaskStatus.IN_TESTING:
-        return 'in-testing';
-      case TaskStatus.IN_REVIEW:
-        return 'in-review';
-      case TaskStatus.DONE:
-        return 'done';
-      default:
-        return 'default';
-    }
-  };
+    }  };
 
   // Get the latest history entry if available
   const latestHistory = task.statusHistory && task.statusHistory.length > 0
@@ -96,8 +57,7 @@ export default function TaskCard({ task, onClick, isKanban = false, isDraggable 
     ><CardHeader className={`${isKanban ? 'p-3 pb-1' : 'pb-2'}`}>
         <div className="flex justify-between items-start">
           <CardTitle className={`${isKanban ? 'text-base leading-tight' : 'text-xl'}`}>{task.title}</CardTitle>
-          {!isKanban && (
-            <Badge variant={getStatusVariant(task.status)}>
+          {!isKanban && (            <Badge variant={getStatusVariant(task.status) as "investigation" | "planning" | "in-progress" | "in-testing" | "in-review" | "done" | "default"}>
               {formatStatus(task.status)}
             </Badge>
           )}

@@ -3,10 +3,10 @@ import { prisma } from "@/lib/prisma";
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string; itemId: string } }
+  context: { params: { id: string; itemId: string } }
 ) {
   try {
-    const { id: taskId, itemId } = await params;
+    const { id: taskId, itemId } = context.params;
     const { checked } = await req.json();
 
     // Validate
@@ -26,12 +26,10 @@ export async function PUT(
       data: {
         checked,
       },
-    });
-
-    return NextResponse.json(updatedItem);
+    });    return NextResponse.json(updatedItem);
   } catch (error) {
     console.error(
-      `Error updating PR checklist item ${params.itemId} for task ${params.id}:`,
+      `Error updating PR checklist item ${context.params.itemId} for task ${context.params.id}:`,
       error
     );
     return NextResponse.json(

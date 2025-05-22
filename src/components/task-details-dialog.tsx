@@ -8,8 +8,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { formatDistanceToNow, format } from 'date-fns';
 import { Task, TaskStatus, StatusHistory, PRChecklistItem } from '@/lib/types';
 import { useRouter } from 'next/navigation';
-import { useTaskUpdates } from '@/lib/useTaskUpdates';
+import { useTaskUpdates } from '@/lib/use-task-updates';
 import { useToast } from '@/lib/use-toast';
+import { formatStatus, getStatusVariant, getNextStatus } from '@/lib/utils';
 
 interface TaskDetailsDialogProps {
   task: Task | null;
@@ -23,61 +24,11 @@ export default function TaskDetailsDialog({
 }: TaskDetailsDialogProps) {
   const router = useRouter();
   const { refreshData } = useTaskUpdates();
-  const { toast } = useToast();
-  const [statusNotes, setStatusNotes] = useState('');
+  const { toast } = useToast();  const [statusNotes, setStatusNotes] = useState('');
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isUpdatingChecklist, setIsUpdatingChecklist] = useState(false);
 
-  // Format the status for display
-  const formatStatus = (status: TaskStatus): string => {
-    switch (status) {
-      case TaskStatus.INVESTIGATION:
-        return 'Investigation';
-      case TaskStatus.PLANNING:
-        return 'Planning';
-      case TaskStatus.IN_PROGRESS:
-        return 'In Progress';
-      case TaskStatus.IN_TESTING:
-        return 'In Testing';
-      case TaskStatus.IN_REVIEW:
-        return 'In Review';
-      case TaskStatus.DONE:
-        return 'Done';
-      default:
-        return status;
-    }
-  };
-
-  // Get status badge variant
-  const getStatusVariant = (status: TaskStatus) => {
-    switch (status) {
-      case TaskStatus.INVESTIGATION:
-        return 'investigation';
-      case TaskStatus.PLANNING:
-        return 'planning';
-      case TaskStatus.IN_PROGRESS:
-        return 'in-progress';
-      case TaskStatus.IN_TESTING:
-        return 'in-testing';
-      case TaskStatus.IN_REVIEW:
-        return 'in-review';
-      case TaskStatus.DONE:
-        return 'done';
-      default:
-        return 'default';
-    }
-  };  // Get the next status in the sequence
-  const getNextStatus = (currentStatus: TaskStatus): TaskStatus | null => {
-    // Determine the next status in sequence
-    const statusOrder = Object.values(TaskStatus);
-    const currentIndex = statusOrder.indexOf(currentStatus);
-    
-    if (currentIndex < statusOrder.length - 1) {
-      return statusOrder[currentIndex + 1];
-    }
-    
-    return null; // No next status if it's already at the end
-  };  // Handle status update
+  // Handle status update
   const handleStatusUpdate = async () => {
     if (!task) return;
     
@@ -212,9 +163,8 @@ export default function TaskDetailsDialog({
                 {task.title}
               </DialogTitle>
             </div>
-            <div className="flex items-center gap-2">
-              <Badge 
-                variant={getStatusVariant(task.status)} 
+            <div className="flex items-center gap-2">              <Badge 
+                variant={getStatusVariant(task.status) as "investigation" | "planning" | "in-progress" | "in-testing" | "in-review" | "done" | "default"} 
                 className="text-sm shrink-0"
               >
                 {formatStatus(task.status)}
@@ -283,15 +233,13 @@ export default function TaskDetailsDialog({
               <div className="bg-muted/30 rounded-lg p-4 space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <span className="text-sm font-medium block">Current status:</span>
-                    <Badge variant={getStatusVariant(task.status)}>
+                    <span className="text-sm font-medium block">Current status:</span>                    <Badge variant={getStatusVariant(task.status) as "investigation" | "planning" | "in-progress" | "in-testing" | "in-review" | "done" | "default"}>
                       {formatStatus(task.status)}
                     </Badge>
                   </div>
                   
                   <div className="space-y-2">
-                    <span className="text-sm font-medium block">Next status:</span>
-                    <Badge variant={getStatusVariant(nextStatus)}>
+                    <span className="text-sm font-medium block">Next status:</span>                    <Badge variant={getStatusVariant(nextStatus) as "investigation" | "planning" | "in-progress" | "in-testing" | "in-review" | "done" | "default"}>
                       {formatStatus(nextStatus)}
                     </Badge>
                   </div>
@@ -342,9 +290,8 @@ export default function TaskDetailsDialog({
                   />
                   
                   {/* Status header with badge and date */}
-                  <div className="flex flex-wrap justify-between items-center gap-2 mb-2">
-                    <Badge 
-                      variant={getStatusVariant(history.status)} 
+                  <div className="flex flex-wrap justify-between items-center gap-2 mb-2">                    <Badge 
+                      variant={getStatusVariant(history.status) as "investigation" | "planning" | "in-progress" | "in-testing" | "in-review" | "done" | "default"} 
                       className="px-2.5 py-1"
                     >
                       {formatStatus(history.status)}

@@ -10,6 +10,7 @@ import { Task, TaskStatus } from '@/lib/types';
 import { Plus, Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTaskFilterParams } from '@/lib/use-task-filter-params';
+import { formatStatus } from '@/lib/utils';
 
 interface TaskGridProps {
   initialTasks: Task[];
@@ -28,20 +29,12 @@ export default function TaskGrid({ initialTasks }: TaskGridProps) {
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'ALL'>(initialStatus);
   
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
-  // Update tasks when initialTasks change (from server)
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);  // Update tasks when initialTasks change (from server) or apply initial filters from URL parameters
   useEffect(() => {
     setTasks(initialTasks);
-    // Re-apply any active filters
+    // Apply any active filters (from URL or state)
     applyFilters(searchQuery, statusFilter, initialTasks);
   }, [initialTasks]);
-  
-  // Apply initial filters from URL parameters on component mount
-  useEffect(() => {
-    if (initialQuery || initialStatus !== 'ALL') {
-      applyFilters(initialQuery, initialStatus, initialTasks);
-    }
-  }, []);
 
   // Refresh data periodically
   useEffect(() => {
@@ -49,13 +42,7 @@ export default function TaskGrid({ initialTasks }: TaskGridProps) {
       router.refresh();
     }, 5000); // Refresh every 5 seconds
 
-    return () => clearInterval(interval);
-  }, [router]);
-
-  // Handle manual refresh when data changes
-  const refreshData = () => {
-    router.refresh();
-  };
+    return () => clearInterval(interval);  }, [router]);
 
   // Handle search and filtering
   const handleSearch = (e: React.FormEvent) => {
@@ -107,27 +94,7 @@ export default function TaskGrid({ initialTasks }: TaskGridProps) {
     updateUrlParams('', 'ALL');
   };
 
-  // Format status for display
-  const formatStatus = (status: TaskStatus): string => {
-    switch (status) {
-      case TaskStatus.INVESTIGATION:
-        return 'Investigation';
-      case TaskStatus.PLANNING:
-        return 'Planning';
-      case TaskStatus.IN_PROGRESS:
-        return 'In Progress';
-      case TaskStatus.IN_TESTING:
-        return 'In Testing';
-      case TaskStatus.IN_REVIEW:
-        return 'In Review';
-      case TaskStatus.DONE:
-        return 'Done';
-      default:
-        return status;
-    }
-  };
-
-  return (
+    return (
     <div className="space-y-8">
       {/* Header */}
       <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">

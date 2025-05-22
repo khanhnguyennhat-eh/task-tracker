@@ -4,10 +4,11 @@ import { TaskStatus } from "@/lib/types";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
-    const taskId = await params.id;
+    // Use context.params which is already resolved
+    const taskId = context.params.id;
     const { status, notes } = await req.json();
 
     // Validate required fields
@@ -95,11 +96,9 @@ export async function POST(
           notes,
         },
       }),
-    ]);
-
-    return NextResponse.json(updatedTask);
+    ]);    return NextResponse.json(updatedTask);
   } catch (error) {
-    console.error(`Error updating status for task ${params.id}:`, error);
+    console.error(`Error updating status for task ${context.params.id}:`, error);
     return NextResponse.json(
       { error: "Failed to update task status" },
       { status: 500 }

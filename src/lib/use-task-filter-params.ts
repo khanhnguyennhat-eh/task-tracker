@@ -13,10 +13,18 @@ export function useTaskFilterParams() {
 
   /**
    * Update URL search parameters with current filter values
-   */
-  const updateUrlParams = (query: string, status: TaskStatus | 'ALL') => {
+   */  const updateUrlParams = (query: string, status: TaskStatus | 'ALL') => {
     // Create a new URLSearchParams object
     const params = new URLSearchParams(searchParams.toString());
+    
+    // Get existing values to check if we actually need to update the URL
+    const currentQuery = searchParams.get('q') || '';
+    const currentStatus = searchParams.get('status') || 'ALL';
+    
+    // Only proceed if there's an actual change to avoid unnecessary history entries
+    if (currentQuery === query && currentStatus === (status === 'ALL' ? 'ALL' : status)) {
+      return; // No change, so don't update URL
+    }
     
     // Update or remove the search parameter
     if (query) {

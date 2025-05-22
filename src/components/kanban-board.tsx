@@ -12,6 +12,7 @@ import { Plus, Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/lib/use-toast';
 import { useTaskFilterParams } from '@/lib/use-task-filter-params';
+import { formatStatus, getStatusColor } from '@/lib/utils';
 
 interface KanbanBoardProps {
   initialTasks: Task[];
@@ -38,20 +39,13 @@ export default function KanbanBoard({ initialTasks }: KanbanBoardProps) {
     acc[status] = filteredTasks.filter(task => task.status === status);
     return acc;
   }, {} as Record<TaskStatus, Task[]>);
-
-  // Update tasks when initialTasks change (from server)
+  
+  // Update tasks when initialTasks change (from server) or apply initial filters from URL parameters
   useEffect(() => {
     setTasks(initialTasks);
-    // Re-apply any active filters
+    // Apply any active filters (from URL or state)
     applyFilters(searchQuery, statusFilter, initialTasks);
   }, [initialTasks]);
-  
-  // Apply initial filters from URL parameters on component mount
-  useEffect(() => {
-    if (initialQuery || initialStatus !== 'ALL') {
-      applyFilters(initialQuery, initialStatus, initialTasks);
-    }
-  }, []);
 
   // Refresh data periodically
   useEffect(() => {
@@ -107,69 +101,60 @@ export default function KanbanBoard({ initialTasks }: KanbanBoardProps) {
     setIsDetailsDialogOpen(true);
   };
 
-  // Reset filters and update URL
+  // Reset filters
   const resetFilters = () => {
     setSearchQuery('');
     setStatusFilter('ALL');
     setFilteredTasks(tasks);
     updateUrlParams('', 'ALL');
-  };  // Handle drag end event
-  const onDragEnd = async (result: any) => {
+  };
+
+  // Handle drag and drop between columns
+  const handleDragEnd = async (result: any) => {
     const { destination, source, draggableId } = result;
-
-    // If dropped outside a droppable area
+    
+    // Return if dropped outside of a droppable area
     if (!destination) return;
-
-    // If dropped in the same place
+    
+    // Return if dropped in the same position
     if (
       destination.droppableId === source.droppableId &&
       destination.index === source.index
-    ) {
-      return;
-    }
-
-    // Get the task being dragged
-    const taskId = draggableId;
-    const task = tasks.find(t => t.id === taskId);
+    ) return;
+    
+    // Find the task that was moved
+    const task = tasks.find(t => t.id === draggableId);
     if (!task) return;
-
-    // Get the new status from destination droppable ID
-    const newStatus = destination.droppableId as TaskStatus;
-
-    // If status is changing, update the task status directly
-    if (newStatus !== task.status) {
-      // Update the displayed tasks optimistically
-      setFilteredTasks(prevTasks => 
-        prevTasks.map(t => 
-          t.id === task.id 
-            ? {...t, status: newStatus} 
-            : t
-        )
-      );
+    
+    // Check if task status needs updating (dropped in a different column)
+    if (destination.droppableId !== source.droppableId) {
+      const newStatus = destination.droppableId as TaskStatus;
       
-      // Update tasks state
-      setTasks(prevTasks => 
-        prevTasks.map(t => 
-          t.id === task.id 
-            ? {...t, status: newStatus} 
-            : t
-        )
-      );
+      // Don't update if the statuses are the same
+      if (task.status === newStatus) return;
       
-      // Call API to update the task status
       try {
+        // Optimistically update UI
+        const updatedTasks = tasks.map(t => 
+          t.id === task.id 
+            ? {...t, status: newStatus} 
+            : t
+        );
+        setTasks(updatedTasks);
+          // Update the task status on the server
         const response = await fetch(`/api/tasks/${task.id}/status`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-drag-operation': 'true',
+            'x-drag-operation': 'true'
           },
           body: JSON.stringify({
             status: newStatus,
             notes: `Task moved to ${formatStatus(newStatus)} via drag and drop`,
           }),
         });
-          if (!response.ok) {
+        
+        if (!response.ok) {
           throw new Error('Failed to update task status');
         }
         
@@ -182,17 +167,10 @@ export default function KanbanBoard({ initialTasks }: KanbanBoardProps) {
         
         // Refresh data from server
         router.refresh();
-      } catch (error: any) {
+      } catch (error) {
         console.error('Error updating task status:', error);
         
-        // Show error toast
-        toast({
-          title: "Error moving task",
-          description: error.message || "Failed to update task status",
-          variant: "destructive",
-        });
-        
-        // Revert optimistic update if there was an error
+        // Revert optimistic update
         setFilteredTasks(prevTasks => 
           prevTasks.map(t => 
             t.id === task.id 
@@ -211,48 +189,9 @@ export default function KanbanBoard({ initialTasks }: KanbanBoardProps) {
     }
   };
 
-  // Format status for display
-  const formatStatus = (status: TaskStatus): string => {
-    switch (status) {
-      case TaskStatus.INVESTIGATION:
-        return 'Investigation';
-      case TaskStatus.PLANNING:
-        return 'Planning';
-      case TaskStatus.IN_PROGRESS:
-        return 'In Progress';
-      case TaskStatus.IN_TESTING:
-        return 'In Testing';
-      case TaskStatus.IN_REVIEW:
-        return 'In Review';
-      case TaskStatus.DONE:
-        return 'Done';
-      default:
-        return status;
-    }
-  };
-
-  // Get status column color
-  const getStatusColor = (status: TaskStatus): string => {
-    switch (status) {
-      case TaskStatus.INVESTIGATION:
-        return 'border-status-investigation/30 bg-status-investigation/10';
-      case TaskStatus.PLANNING:
-        return 'border-status-planning/30 bg-status-planning/10';
-      case TaskStatus.IN_PROGRESS:
-        return 'border-status-in-progress/30 bg-status-in-progress/10';
-      case TaskStatus.IN_TESTING:
-        return 'border-status-in-testing/30 bg-status-in-testing/10';
-      case TaskStatus.IN_REVIEW:
-        return 'border-status-in-review/30 bg-status-in-review/10';
-      case TaskStatus.DONE:
-        return 'border-status-done/30 bg-status-done/10';
-      default:
-        return 'border-muted bg-background';
-    }
-  };
-
   return (
-    <div className="space-y-8">      {/* Header */}
+    <div className="space-y-8">
+      {/* Header */}
       <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Task Board</h1>
@@ -306,79 +245,84 @@ export default function KanbanBoard({ initialTasks }: KanbanBoardProps) {
         >
           Reset
         </Button>
-      </div>      {/* Kanban Board */}
-      {filteredTasks.length > 0 ? (
-        <DragDropContext onDragEnd={onDragEnd}>          <div className="flex gap-4 overflow-x-auto pb-6 px-1 snap-x h-[calc(100vh-280px)] max-h-[750px]">
-            {Object.values(TaskStatus).map((status) => (
-              <div 
-                key={status} 
-                className={`flex flex-col h-full w-[280px] min-w-[280px] border rounded-lg overflow-hidden shadow-sm ${getStatusColor(status)}`}
-              ><div className="p-3 border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
-                  <h3 className="font-semibold text-center">{formatStatus(status)}</h3>
-                  <div className="text-xs text-muted-foreground text-center mt-1">
-                    {tasksByStatus[status]?.length || 0} {tasksByStatus[status]?.length === 1 ? "Task" : "Tasks"}
+      </div>
+
+      {/* Kanban Board */}
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <div className="flex space-x-4 pb-8 overflow-x-auto snap-x">
+          {Object.values(TaskStatus).map(status => (
+            <Droppable key={status} droppableId={status}>
+              {(provided, snapshot) => (
+                <div
+                  ref={provided.innerRef}
+                  {...provided.droppableProps}
+                  className={`flex flex-col h-full w-[280px] min-w-[280px] border rounded-lg overflow-hidden shadow-sm ${getStatusColor(status)}`}
+                >
+                  <div className="p-3 border-b bg-card">
+                    <h3 className="font-semibold text-center">{formatStatus(status)}</h3>
+                    <div className="text-xs text-center text-muted-foreground mt-1">
+                      {tasksByStatus[status].length} tasks
+                    </div>
+                  </div>
+                  
+                  <div className="flex-1 overflow-y-auto p-2 space-y-2 min-h-[200px]">
+                    {tasksByStatus[status].map((task, index) => (
+                      <Draggable 
+                        key={task.id} 
+                        draggableId={task.id} 
+                        index={index}
+                      >
+                        {(provided, snapshot) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            {...provided.dragHandleProps}
+                            style={{
+                              ...provided.draggableProps.style,
+                              opacity: snapshot.isDragging ? 0.8 : 1,
+                            }}
+                          >
+                            <TaskCard 
+                              task={task} 
+                              onClick={() => handleTaskClick(task)}
+                              isKanban={true}
+                              isDraggable={true}
+                            />
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
+                    
+                    {tasksByStatus[status].length === 0 && (
+                      <div className="flex items-center justify-center h-24 text-sm text-muted-foreground">
+                        No tasks in this status
+                      </div>
+                    )}
                   </div>
                 </div>
-                
-                <Droppable droppableId={status}>
-                  {(provided) => (                    <div 
-                      ref={provided.innerRef}
-                      {...provided.droppableProps}
-                      className="flex-1 p-3 space-y-4 overflow-y-auto"
-                    >
-                      {tasksByStatus[status]?.map((task, index) => (
-                        <Draggable 
-                          key={task.id} 
-                          draggableId={task.id} 
-                          index={index}
-                        >
-                          {(provided) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                              className="mb-3"
-                            >                              <TaskCard
-                                task={task}
-                                onClick={() => handleTaskClick(task)}
-                                isKanban={true}
-                                isDraggable={true}
-                              />
-                            </div>
-                          )}
-                        </Draggable>
-                      ))}
-                      {provided.placeholder}
-                    </div>
-                  )}
-                </Droppable>
-              </div>
-            ))}
-          </div>
-        </DragDropContext>
-      ) : (
+              )}
+            </Droppable>
+          ))}
+        </div>
+      </DragDropContext>
+
+      {/* Empty State */}
+      {filteredTasks.length === 0 && statusFilter === 'ALL' && searchQuery === '' && (
         <div className="flex flex-col items-center justify-center bg-muted/40 rounded-lg p-12 text-center">
           <div className="rounded-full bg-background p-3 mb-4">
             <Search className="h-6 w-6 text-muted-foreground" />
           </div>
-          <h3 className="text-lg font-medium">No tasks found</h3>
+          <h3 className="text-lg font-medium">No tasks yet</h3>
           <p className="text-muted-foreground mt-2 mb-6">
-            {tasks.length === 0
-              ? "You haven't created any tasks yet."
-              : "No tasks match your current filters."}
+            Get started by creating your first task
           </p>
-          {tasks.length === 0 ? (
-            <Button onClick={() => setIsCreateDialogOpen(true)}>
-              Create your first task
-            </Button>
-          ) : (
-            <Button variant="outline" onClick={resetFilters}>
-              Reset filters
-            </Button>
-          )}
+          <Button onClick={() => setIsCreateDialogOpen(true)}>
+            Create your first task
+          </Button>
         </div>
       )}
-
+      
       {/* Task Creation Dialog */}
       <CreateTaskDialog
         open={isCreateDialogOpen}
