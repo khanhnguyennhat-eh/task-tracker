@@ -6,18 +6,15 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useRouter } from 'next/navigation';
-import { useTaskUpdates } from '@/lib/useTaskUpdates';
-import { useToast } from '@/lib/use-toast';
 
 export default function CreateTaskDialog({
-  open,  onOpenChange,
+  open,
+  onOpenChange,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
   const router = useRouter();
-  const { refreshData } = useTaskUpdates();
-  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
@@ -51,52 +48,39 @@ export default function CreateTaskDialog({
           title: formData.title,
           description: formData.description,
         }),
-      });      if (!response.ok) {
+      });
+
+      if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || 'Failed to create task');
       }
-      
-      const result = await response.json();
-      
+
       // Reset form and close dialog
       setFormData({ title: '', description: '' });
-      onOpenChange(false);      
-      
-      // Show success toast
-      toast({
-        title: "Task created",
-        description: `"${formData.title}" has been successfully created`,
-        variant: "success",
-      });
+      onOpenChange(false);
       
       // Refresh the task list
-      router.refresh();      refreshData(); // Call our custom refresh function
-    } catch (error: any) {
+      router.refresh();
+    } catch (error) {
       console.error('Error creating task:', error);
-      
-      // Show error toast
-      toast({
-        title: "Error",
-        description: "Failed to create task. Please try again.",
-        variant: "destructive",
-      });
     } finally {
       setIsSubmitting(false);
     }
   };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px] p-0 overflow-hidden">
-        <form onSubmit={handleSubmit} className="flex flex-col h-full">
-          <DialogHeader className="px-6 pt-6 pb-2">
-            <DialogTitle className="text-xl font-bold">Create New Task</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
+      <DialogContent className="sm:max-w-[525px]">
+        <form onSubmit={handleSubmit}>
+          <DialogHeader>
+            <DialogTitle>Create New Task</DialogTitle>
+            <DialogDescription>
               Add details for your new task. This will start in the Investigation stage.
             </DialogDescription>
           </DialogHeader>
           
-          <div className="flex-1 px-6 py-4 space-y-6 overflow-auto">
-            <div className="space-y-2">
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
               <label htmlFor="title" className="text-sm font-medium">
                 Task Title
               </label>
@@ -107,11 +91,10 @@ export default function CreateTaskDialog({
                 value={formData.title}
                 onChange={handleInputChange}
                 required
-                className="w-full"
               />
             </div>
             
-            <div className="space-y-2">
+            <div className="grid gap-2">
               <label htmlFor="description" className="text-sm font-medium">
                 Task Description
               </label>
@@ -123,20 +106,17 @@ export default function CreateTaskDialog({
                 value={formData.description}
                 onChange={handleInputChange}
                 required
-                className="resize-none w-full min-h-[150px]"
               />
             </div>
           </div>
           
-          <DialogFooter className="px-6 py-4 border-t">
-            <div className="flex gap-2 w-full justify-between sm:justify-end">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting} className="px-6">
-                {isSubmitting ? 'Creating...' : 'Create Task'}
-              </Button>
-            </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Creating...' : 'Create Task'}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

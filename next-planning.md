@@ -75,7 +75,7 @@ A modern web application to track software engineering tasks through predefined 
 - [x] Create filter components using Shadcn UI
 - [x] Implement server-side or client-side search functionality
 - [x] Design and implement filter reset options
-- [x] Add URL query parameters for sharing filtered views
+- [ ] Add URL query parameters for sharing filtered views
 
 ### 8. Database Integration ✅
 
@@ -86,7 +86,7 @@ A modern web application to track software engineering tasks through predefined 
 
 ### 9. UI/UX Enhancements 🔄
 
-- [x] Create dark/light mode toggle
+- [ ] Create dark/light mode toggle
 - [x] Add loading states and skeletons
 - [ ] Implement toast notifications for actions
 - [x] Add animations and transitions
@@ -186,10 +186,9 @@ The project structure has been reorganized to eliminate redundant files and the 
 - [x] Search and filter functionality
 - [x] UI/UX refinement (core components)
 - [x] Project structure reorganization
-- [x] Dark/light mode toggle implementation
-- [x] Toast notifications for actions
-- [x] URL query parameters for sharing filtered views
-- [x] Implement Kanban board view for tasks
+- [ ] Dark/light mode toggle implementation
+- [ ] Toast notifications for actions
+- [ ] URL query parameters for sharing filtered views
 - [ ] Additional UI/UX refinement
 - [ ] Testing and bug fixing
 - [ ] Production optimization
@@ -198,14 +197,13 @@ The project structure has been reorganized to eliminate redundant files and the 
 
 ### 1. UI/UX Enhancements
 
-- [x] Implement dark/light mode toggle with Tailwind and localStorage
-- [x] Add toast notifications for task actions (create/update/delete)
+- [ ] Implement dark/light mode toggle with Tailwind and localStorage
+- [ ] Add toast notifications for task actions (create/update/delete)
 
 ### 2. Features Enhancements
 
-- [x] Add URL query parameters for sharing filtered views
+- [ ] Add URL query parameters for sharing filtered views
 - [ ] Implement task priority levels
-- [x] Implement Kanban board view for tasks
 
 ### 3. Deployment & Optimization
 

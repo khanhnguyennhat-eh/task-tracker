@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import TaskCard from '@/components/task-card';
@@ -8,54 +8,19 @@ import CreateTaskDialog from '@/components/create-task-dialog';
 import TaskDetailsDialog from '@/components/task-details-dialog';
 import { Task, TaskStatus } from '@/lib/types';
 import { Plus, Search } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useTaskFilterParams } from '@/lib/use-task-filter-params';
 
 interface TaskGridProps {
   initialTasks: Task[];
 }
 
 export default function TaskGrid({ initialTasks }: TaskGridProps) {
-  const router = useRouter();
-  const { updateUrlParams, getFiltersFromUrl } = useTaskFilterParams();
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [filteredTasks, setFilteredTasks] = useState<Task[]>(initialTasks);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  
-  // Initialize from URL parameters or defaults
-  const { query: initialQuery, status: initialStatus } = getFiltersFromUrl();
-  const [searchQuery, setSearchQuery] = useState(initialQuery);
-  const [statusFilter, setStatusFilter] = useState<TaskStatus | 'ALL'>(initialStatus);
-  
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<TaskStatus | 'ALL'>('ALL');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
-  // Update tasks when initialTasks change (from server)
-  useEffect(() => {
-    setTasks(initialTasks);
-    // Re-apply any active filters
-    applyFilters(searchQuery, statusFilter, initialTasks);
-  }, [initialTasks]);
-  
-  // Apply initial filters from URL parameters on component mount
-  useEffect(() => {
-    if (initialQuery || initialStatus !== 'ALL') {
-      applyFilters(initialQuery, initialStatus, initialTasks);
-    }
-  }, []);
-
-  // Refresh data periodically
-  useEffect(() => {
-    const interval = setInterval(() => {
-      router.refresh();
-    }, 5000); // Refresh every 5 seconds
-
-    return () => clearInterval(interval);
-  }, [router]);
-
-  // Handle manual refresh when data changes
-  const refreshData = () => {
-    router.refresh();
-  };
 
   // Handle search and filtering
   const handleSearch = (e: React.FormEvent) => {
@@ -68,8 +33,9 @@ export default function TaskGrid({ initialTasks }: TaskGridProps) {
     setStatusFilter(newFilter);
     applyFilters(searchQuery, newFilter);
   };
-  const applyFilters = (query: string, status: TaskStatus | 'ALL', taskList = tasks) => {
-    let filtered = taskList;
+
+  const applyFilters = (query: string, status: TaskStatus | 'ALL') => {
+    let filtered = tasks;
 
     // Apply status filter
     if (status !== 'ALL') {
@@ -89,9 +55,6 @@ export default function TaskGrid({ initialTasks }: TaskGridProps) {
     }
 
     setFilteredTasks(filtered);
-    
-    // Update URL parameters
-    updateUrlParams(query, status);
   };
 
   // Handle task selection for viewing details
@@ -99,12 +62,12 @@ export default function TaskGrid({ initialTasks }: TaskGridProps) {
     setSelectedTask(task);
     setIsDetailsDialogOpen(true);
   };
+
   // Reset filters
   const resetFilters = () => {
     setSearchQuery('');
     setStatusFilter('ALL');
     setFilteredTasks(tasks);
-    updateUrlParams('', 'ALL');
   };
 
   // Format status for display

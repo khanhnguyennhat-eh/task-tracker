@@ -9,6 +9,7 @@ import { formatDistanceToNow, format } from 'date-fns';
 import { Task, TaskStatus, StatusHistory, PRChecklistItem } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { useTaskUpdates } from '@/lib/useTaskUpdates';
+import { useToast } from '@/lib/use-toast';
 
 interface TaskDetailsDialogProps {
   task: Task | null;
@@ -22,6 +23,7 @@ export default function TaskDetailsDialog({
 }: TaskDetailsDialogProps) {
   const router = useRouter();
   const { refreshData } = useTaskUpdates();
+  const { toast } = useToast();
   const [statusNotes, setStatusNotes] = useState('');
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isUpdatingChecklist, setIsUpdatingChecklist] = useState(false);
@@ -99,18 +101,35 @@ export default function TaskDetailsDialog({
           status: nextStatus,
           notes: statusNotes,
         }),
-      });
-      if (!response.ok) {
+      });      if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Failed to update status');
-      }      // Reset form and refresh page
+      }
+      
+      const result = await response.json();
+      
+      // Reset form and refresh page
       setStatusNotes('');
       onOpenChange(false);
+      
+      // Show success toast
+      toast({
+        title: "Task updated",
+        description: `Task status changed to ${formatStatus(nextStatus)}`,
+        variant: "success",
+      });
+      
       router.refresh();
       refreshData(); // Call our custom refresh function
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating task status:', error);
-      alert('Failed to update task status. ' + error);
+      
+      // Show error toast instead of alert
+      toast({
+        title: "Error",
+        description: `Failed to update task status: ${error.message || "Unknown error"}`,
+        variant: "destructive",
+      });
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -130,16 +149,30 @@ export default function TaskDetailsDialog({
         },
         body: JSON.stringify({ checked }),
       });
-      
-      if (!response.ok) {
+        if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to update checklist item');      }
+        throw new Error(error.error || 'Failed to update checklist item');
+      }
+      
+      // Show success toast
+      toast({
+        title: "Checklist updated",
+        description: `Checklist item ${checked ? 'checked' : 'unchecked'}`,
+        variant: "success",
+      });
       
       // Refresh page
       router.refresh();
       refreshData(); // Call our custom refresh function
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating checklist item:', error);
+      
+      // Show error toast
+      toast({
+        title: "Error",
+        description: `Failed to update checklist item: ${error.message || "Unknown error"}`,
+        variant: "destructive",
+      });
     } finally {
       setIsUpdatingChecklist(false);
     }

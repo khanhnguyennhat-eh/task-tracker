@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/lib/use-toast';
+import { useTaskFilterParams } from '@/lib/use-task-filter-params';
 
 interface KanbanBoardProps {
   initialTasks: Task[];
@@ -17,11 +19,17 @@ interface KanbanBoardProps {
 
 export default function KanbanBoard({ initialTasks }: KanbanBoardProps) {
   const router = useRouter();
+  const { toast } = useToast();
+  const { updateUrlParams, getFiltersFromUrl } = useTaskFilterParams();
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [filteredTasks, setFilteredTasks] = useState<Task[]>(initialTasks);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<TaskStatus | 'ALL'>('ALL');
+  
+  // Initialize from URL parameters or defaults
+  const { query: initialQuery, status: initialStatus } = getFiltersFromUrl();
+  const [searchQuery, setSearchQuery] = useState(initialQuery);
+  const [statusFilter, setStatusFilter] = useState<TaskStatus | 'ALL'>(initialStatus);
+  
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
 
@@ -37,6 +45,13 @@ export default function KanbanBoard({ initialTasks }: KanbanBoardProps) {
     // Re-apply any active filters
     applyFilters(searchQuery, statusFilter, initialTasks);
   }, [initialTasks]);
+  
+  // Apply initial filters from URL parameters on component mount
+  useEffect(() => {
+    if (initialQuery || initialStatus !== 'ALL') {
+      applyFilters(initialQuery, initialStatus, initialTasks);
+    }
+  }, []);
 
   // Refresh data periodically
   useEffect(() => {
@@ -59,6 +74,7 @@ export default function KanbanBoard({ initialTasks }: KanbanBoardProps) {
     applyFilters(searchQuery, newFilter);
   };
 
+  // Apply filters and update URL parameters
   const applyFilters = (query: string, status: TaskStatus | 'ALL', taskList = tasks) => {
     let filtered = taskList;
 
@@ -80,6 +96,9 @@ export default function KanbanBoard({ initialTasks }: KanbanBoardProps) {
     }
 
     setFilteredTasks(filtered);
+    
+    // Update URL parameters
+    updateUrlParams(query, status);
   };
 
   // Handle task selection for viewing details
@@ -88,11 +107,12 @@ export default function KanbanBoard({ initialTasks }: KanbanBoardProps) {
     setIsDetailsDialogOpen(true);
   };
 
-  // Reset filters
+  // Reset filters and update URL
   const resetFilters = () => {
     setSearchQuery('');
     setStatusFilter('ALL');
     setFilteredTasks(tasks);
+    updateUrlParams('', 'ALL');
   };  // Handle drag end event
   const onDragEnd = async (result: any) => {
     const { destination, source, draggableId } = result;
@@ -149,15 +169,29 @@ export default function KanbanBoard({ initialTasks }: KanbanBoardProps) {
             notes: `Task moved to ${formatStatus(newStatus)} via drag and drop`,
           }),
         });
-        
-        if (!response.ok) {
+          if (!response.ok) {
           throw new Error('Failed to update task status');
         }
         
+        // Show success toast
+        toast({
+          title: "Task moved",
+          description: `"${task.title}" moved to ${formatStatus(newStatus)}`,
+          variant: "success",
+        });
+        
         // Refresh data from server
         router.refresh();
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error updating task status:', error);
+        
+        // Show error toast
+        toast({
+          title: "Error moving task",
+          description: error.message || "Failed to update task status",
+          variant: "destructive",
+        });
+        
         // Revert optimistic update if there was an error
         setFilteredTasks(prevTasks => 
           prevTasks.map(t => 
