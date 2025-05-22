@@ -66,20 +66,19 @@ export default function CreateTaskDialog({
       setIsSubmitting(false);
     }
   };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[525px]">
-        <form onSubmit={handleSubmit}>
-          <DialogHeader>
-            <DialogTitle>Create New Task</DialogTitle>
-            <DialogDescription>
+      <DialogContent className="sm:max-w-[550px] p-0 overflow-hidden">
+        <form onSubmit={handleSubmit} className="flex flex-col h-full">
+          <DialogHeader className="px-6 pt-6 pb-2">
+            <DialogTitle className="text-xl font-bold">Create New Task</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Add details for your new task. This will start in the Investigation stage.
             </DialogDescription>
           </DialogHeader>
           
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
+          <div className="flex-1 px-6 py-4 space-y-6 overflow-auto">
+            <div className="space-y-2">
               <label htmlFor="title" className="text-sm font-medium">
                 Task Title
               </label>
@@ -90,10 +89,11 @@ export default function CreateTaskDialog({
                 value={formData.title}
                 onChange={handleInputChange}
                 required
+                className="w-full"
               />
             </div>
             
-            <div className="grid gap-2">
+            <div className="space-y-2">
               <label htmlFor="description" className="text-sm font-medium">
                 Task Description
               </label>
@@ -105,17 +105,20 @@ export default function CreateTaskDialog({
                 value={formData.description}
                 onChange={handleInputChange}
                 required
+                className="resize-none w-full min-h-[150px]"
               />
             </div>
           </div>
           
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Creating...' : 'Create Task'}
-            </Button>
+          <DialogFooter className="px-6 py-4 border-t">
+            <div className="flex gap-2 w-full justify-between sm:justify-end">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting} className="px-6">
+                {isSubmitting ? 'Creating...' : 'Create Task'}
+              </Button>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>

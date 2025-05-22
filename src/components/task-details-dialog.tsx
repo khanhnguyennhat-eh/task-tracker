@@ -64,10 +64,9 @@ export default function TaskDetailsDialog({
       default:
         return 'default';
     }
-  };
-
-  // Get the next status in the sequence
+  };  // Get the next status in the sequence
   const getNextStatus = (currentStatus: TaskStatus): TaskStatus | null => {
+    // Determine the next status in sequence
     const statusOrder = Object.values(TaskStatus);
     const currentIndex = statusOrder.indexOf(currentStatus);
     
@@ -76,9 +75,7 @@ export default function TaskDetailsDialog({
     }
     
     return null; // No next status if it's already at the end
-  };
-
-  // Handle status update
+  };  // Handle status update
   const handleStatusUpdate = async () => {
     if (!task) return;
     
@@ -103,7 +100,6 @@ export default function TaskDetailsDialog({
           notes: statusNotes,
         }),
       });
-      
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Failed to update status');
@@ -172,25 +168,38 @@ export default function TaskDetailsDialog({
 
   if (!task) return null;
   
-  const nextStatus = getNextStatus(task.status);
-  return (
+  const nextStatus = getNextStatus(task.status);  return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto p-0">
         {/* Dialog Header with Task Title and Status Badge */}
         <DialogHeader className="px-6 pt-6 pb-4 sticky top-0 bg-background z-10 border-b">
-          <div className="flex flex-col space-y-2">
-            <div className="flex items-start justify-between gap-4">
-              <DialogTitle className="text-xl font-bold leading-tight mr-8">
+          <div className="flex justify-between items-start mb-2">
+            <div className="flex-1">
+              <DialogTitle className="text-xl font-bold leading-tight">
                 {task.title}
               </DialogTitle>
+            </div>
+            <div className="flex items-center gap-2">
               <Badge 
                 variant={getStatusVariant(task.status)} 
-                className="text-sm mt-1 shrink-0"
+                className="text-sm shrink-0"
               >
                 {formatStatus(task.status)}
               </Badge>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 w-8 p-0 rounded-full ml-1 hover:bg-muted" 
+                onClick={() => onOpenChange(false)}
+                aria-label="Close dialog"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-4 w-4">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </Button>
             </div>
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
+          </div>
+          <div className="flex flex-col space-y-2">            <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>Created {formatDistanceToNow(new Date(task.createdAt))} ago</span>
               <span className="font-mono">ID: {task.id}</span>
             </div>

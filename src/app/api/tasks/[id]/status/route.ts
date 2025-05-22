@@ -33,14 +33,16 @@ export async function POST(
 
     if (!currentTask) {
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
-    }
-
-    // Validate the status transition (ensure it follows the correct order)
+    }    // Validate the status transition (ensure it follows the correct order)
     const statusOrder = Object.values(TaskStatus);
     const currentStatusIndex = statusOrder.indexOf(currentTask.status as TaskStatus);
     const newStatusIndex = statusOrder.indexOf(status as TaskStatus);
 
-    if (newStatusIndex !== currentStatusIndex + 1) {
+    // Allow direct transitions when the request includes a dragOperation flag
+    // This is used for drag-and-drop operations in the Kanban board
+    const isDragOperation = req.headers.get('x-drag-operation') === 'true';
+    
+    if (!isDragOperation && newStatusIndex !== currentStatusIndex + 1) {
       return NextResponse.json(
         { error: "Invalid status transition. Status must progress in sequence." },
         { status: 400 }
