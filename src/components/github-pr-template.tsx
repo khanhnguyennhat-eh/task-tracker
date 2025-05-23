@@ -39,8 +39,7 @@ export default function GitHubPRTemplate({
   const handleSave = async () => {
     setIsSaving(true);
     
-    try {
-      // Store the PR template data in localStorage for now
+    try {      // Store the PR template data in localStorage for now
       // This can be replaced with an API call when the database is ready
       const prData = {
         jiraTicket,
@@ -49,7 +48,9 @@ export default function GitHubPRTemplate({
         testingPlan
       };
       
-      localStorage.setItem(`pr_template_${taskId}`, JSON.stringify(prData));
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(`pr_template_${taskId}`, JSON.stringify(prData));
+      }
       
       toast({
         title: "PR Template Saved",

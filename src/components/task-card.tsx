@@ -51,13 +51,16 @@ export default function TaskCard({ task, onClick, isKanban = false, isDraggable 
   const prChecklistPercentage = prChecklistTotal > 0 
     ? Math.round((prChecklistCompleted / prChecklistTotal) * 100) 
     : 0;
-    // Check if PR template is filled
+  // Check if PR template is filled
   const getPrTemplateData = () => {
     try {
-      // Try to get from localStorage first
-      const savedData = localStorage.getItem(`pr_template_${task.id}`);
-      if (savedData) {
-        return JSON.parse(savedData);
+      // Safely access localStorage (only on client-side)
+      if (typeof window !== 'undefined') {
+        // Try to get from localStorage first
+        const savedData = localStorage.getItem(`pr_template_${task.id}`);
+        if (savedData) {
+          return JSON.parse(savedData);
+        }
       }
       
       // If not in localStorage, try to get from task.prMetadata

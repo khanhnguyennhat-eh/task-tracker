@@ -29,10 +29,9 @@ export default function TaskDetailsDialog({
   const [statusNotes, setStatusNotes] = useState('');  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isUpdatingChecklist, setIsUpdatingChecklist] = useState(false);
   const [prTemplateData, setPrTemplateData] = useState<any>(null);
-  
-  // Load PR template data from localStorage when the task changes
+    // Load PR template data from localStorage when the task changes
   useEffect(() => {
-    if (task) {
+    if (task && typeof window !== 'undefined') {
       try {
         // First try to get from localStorage
         const savedData = localStorage.getItem(`pr_template_${task.id}`);
