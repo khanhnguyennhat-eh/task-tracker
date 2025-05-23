@@ -171,20 +171,23 @@ export default function KanbanBoard({ initialTasks }: KanbanBoardProps) {
       destination.droppableId === source.droppableId &&
       destination.index === source.index
     ) return;
-    
-    // Check if task status needs updating (dropped in a different column)
+      // Check if task status needs updating (dropped in a different column)
     if (destination.droppableId !== source.droppableId) {
       const newStatus = destination.droppableId as TaskStatus;
       
       // Use our custom hook to handle the move operation
+      // This now returns immediately after the UI update
       const success = await moveTask(draggableId, newStatus);
       
-      // If the move was successful, apply the change to filteredTasks as well
+      // If the UI update was successful, update filtered tasks immediately
       if (success) {
-        // Update the filtered tasks to match
+        // Apply the same update to filteredTasks
         setFilteredTasks(prevTasks => {
-          const updatedTask = tasks.find(t => t.id === draggableId);
-          if (!updatedTask) return prevTasks;
+          const taskToUpdate = prevTasks.find(t => t.id === draggableId);
+          if (!taskToUpdate) return prevTasks;
+          
+          // Create an updated version with the new status
+          const updatedTask = { ...taskToUpdate, status: newStatus };
           
           return prevTasks.map(t => 
             t.id === draggableId ? updatedTask : t

@@ -26,6 +26,10 @@ A modern web application for tracking software engineering tasks through a prede
 - **Database**: Prisma ORM with SQLite
 - **Form Handling**: React Hook Form with Zod validation
 
+## Development Guidelines
+
+- [Commit Message Guidelines](./docs/commit-message-guide.md) - Follow these rules when creating commit messages
+
 ## Getting Started
 
 First, install the dependencies:
