@@ -6,9 +6,7 @@ export async function GET(
   context: { params: { id: string } }
 ) {
   try {
-    const taskId = context.params.id;
-
-    const task = await prisma.task.findUnique({
+    const taskId = context.params.id;    const task = await prisma.task.findUnique({
       where: { id: taskId },
       include: {
         statusHistory: {
@@ -17,6 +15,7 @@ export async function GET(
           },
         },
         prChecklist: true,
+        prMetadata: true,
       },
     });
 

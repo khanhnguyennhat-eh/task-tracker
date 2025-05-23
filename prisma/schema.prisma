@@ -28,6 +28,7 @@ model Task {
   status        TaskStatus      @default(INVESTIGATION)
   statusHistory StatusHistory[]
   prChecklist   PRChecklistItem[]
+  prMetadata    PRMetadata?
 }
 
 model StatusHistory {
@@ -45,4 +46,14 @@ model PRChecklistItem {
   text    String
   checked Boolean @default(false)
   task    Task    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+model PRMetadata {
+  id          String @id @default(uuid())
+  taskId      String @unique
+  jiraTicket  String?
+  jiraLink    String?
+  description String?
+  testingPlan String?
+  task        Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
 }

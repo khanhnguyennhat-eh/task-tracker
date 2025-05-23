@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation';
 import { useTaskUpdates } from '@/lib/use-task-updates';
 import { useToast } from '@/lib/use-toast';
 import { formatStatus, getStatusVariant, getNextStatus } from '@/lib/utils';
+import GitHubPRTemplate from './github-pr-template';
 
 interface TaskDetailsDialogProps {
   task: Task | null;
@@ -24,9 +25,51 @@ export default function TaskDetailsDialog({
 }: TaskDetailsDialogProps) {
   const router = useRouter();
   const { refreshData } = useTaskUpdates();
-  const { toast } = useToast();  const [statusNotes, setStatusNotes] = useState('');
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const { toast } = useToast();
+  const [statusNotes, setStatusNotes] = useState('');  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isUpdatingChecklist, setIsUpdatingChecklist] = useState(false);
+  const [prTemplateData, setPrTemplateData] = useState<any>(null);
+  
+  // Load PR template data from localStorage when the task changes
+  useEffect(() => {
+    if (task) {
+      try {
+        // First try to get from localStorage
+        const savedData = localStorage.getItem(`pr_template_${task.id}`);
+        if (savedData) {
+          setPrTemplateData(JSON.parse(savedData));
+          return;
+        }
+        
+        // If not in localStorage but exists in task.prMetadata, use that
+        if (task.prMetadata) {
+          setPrTemplateData({
+            jiraTicket: task.prMetadata.jiraTicket || '',
+            jiraLink: task.prMetadata.jiraLink || '',
+            description: task.prMetadata.description || '',
+            testingPlan: task.prMetadata.testingPlan || '',
+          });
+        } else {
+          // If neither localStorage nor task.prMetadata has data, set to empty values
+          setPrTemplateData({
+            jiraTicket: '',
+            jiraLink: '',
+            description: '',
+            testingPlan: '',
+          });
+        }
+      } catch (error) {
+        console.error('Error loading PR template data:', error);
+        // Fallback to empty values on error
+        setPrTemplateData({
+          jiraTicket: '',
+          jiraLink: '',
+          description: '',
+          testingPlan: '',
+        });
+      }
+    }
+  }, [task]);
 
   // Handle status update
   const handleStatusUpdate = async () => {
@@ -85,7 +128,6 @@ export default function TaskDetailsDialog({
       setIsUpdatingStatus(false);
     }
   };
-
   // Handle checklist item update
   const handleChecklistItemChange = async (itemId: string, checked: boolean) => {
     if (!task) return;
@@ -93,6 +135,14 @@ export default function TaskDetailsDialog({
     setIsUpdatingChecklist(true);
     
     try {
+      // Optimistically update the UI
+      const updatedChecklist = task.prChecklist.map(item => 
+        item.id === itemId ? { ...item, checked } : item
+      );
+      
+      // Apply the update in-memory
+      (task as any).prChecklist = updatedChecklist;
+      
       const response = await fetch(`/api/tasks/${task.id}/checklist/${itemId}`, {
         method: 'PUT',
         headers: {
@@ -112,9 +162,8 @@ export default function TaskDetailsDialog({
         variant: "success",
       });
       
-      // Refresh page
-      router.refresh();
-      refreshData(); // Call our custom refresh function
+      // Refresh data from server (in background)
+      refreshData();
     } catch (error: any) {
       console.error('Error updating checklist item:', error);
       
@@ -124,6 +173,11 @@ export default function TaskDetailsDialog({
         description: `Failed to update checklist item: ${error.message || "Unknown error"}`,
         variant: "destructive",
       });
+      
+      // Revert the optimistic update
+      if (task) {
+        router.refresh();
+      }
     } finally {
       setIsUpdatingChecklist(false);
     }
@@ -202,6 +256,18 @@ export default function TaskDetailsDialog({
           {/* PR Checklist (only for in-review status) */}
           {task.status === TaskStatus.IN_REVIEW && (
             <div className="space-y-3">
+              <h3 className="text-base font-semibold">Pull Request</h3>
+              
+              {/* GitHub PR Template */}
+              <div className="bg-muted/30 rounded-lg p-4 space-y-4">
+                <GitHubPRTemplate 
+                  taskId={task.id} 
+                  initialData={prTemplateData} 
+                  onUpdate={() => router.refresh()}
+                />
+              </div>
+              
+              {/* PR Checklist Items */}
               <h3 className="text-base font-semibold">PR Checklist</h3>
               <div className="bg-muted/30 rounded-lg p-4 space-y-3">
                 {task.prChecklist.map((item: PRChecklistItem) => (

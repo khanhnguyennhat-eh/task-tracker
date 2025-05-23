@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import { ThemeToggle } from "./theme-toggle";
 import { KanbanSquare, ListTodo, Settings, HelpCircle } from 'lucide-react';

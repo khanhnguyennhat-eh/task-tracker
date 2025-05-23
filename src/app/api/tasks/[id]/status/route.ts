@@ -37,9 +37,7 @@ export async function POST(
     }    // Validate the status transition (ensure it follows the correct order)
     const statusOrder = Object.values(TaskStatus);
     const currentStatusIndex = statusOrder.indexOf(currentTask.status as TaskStatus);
-    const newStatusIndex = statusOrder.indexOf(status as TaskStatus);
-
-    // Allow direct transitions when the request includes a dragOperation flag
+    const newStatusIndex = statusOrder.indexOf(status as TaskStatus);    // Allow direct transitions when the request includes a dragOperation flag
     // This is used for drag-and-drop operations in the Kanban board
     const isDragOperation = req.headers.get('x-drag-operation') === 'true';
     
@@ -51,10 +49,8 @@ export async function POST(
     }
 
     // For IN_REVIEW -> DONE transition, check if all PR checklist items are checked
-    if (
-      currentTask.status === TaskStatus.IN_REVIEW &&
-      status === TaskStatus.DONE
-    ) {
+    // This check applies even for drag operations
+    if (status === TaskStatus.DONE) {
       const prChecklist = await prisma.pRChecklistItem.findMany({
         where: { taskId },
       });

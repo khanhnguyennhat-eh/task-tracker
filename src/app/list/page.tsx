@@ -9,8 +9,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ListPage() {
-  try {
-    // Fetch tasks from the database
+  try {    // Fetch tasks from the database
     const prismaData = await prisma.task.findMany({
       include: {
         statusHistory: {
@@ -19,13 +18,12 @@ export default async function ListPage() {
           },
         },
         prChecklist: true,
+        prMetadata: true,
       },
       orderBy: {
         updatedAt: 'desc',
       },
-    });
-
-    // Map Prisma data to our Task type
+    });    // Map Prisma data to our Task type
     const tasks: Task[] = prismaData.map(task => ({
       id: task.id,
       title: task.title,
@@ -46,6 +44,14 @@ export default async function ListPage() {
         text: item.text,
         checked: item.checked,
       })) as PRChecklistItem[],
+      prMetadata: task.prMetadata ? {
+        id: task.prMetadata.id,
+        taskId: task.prMetadata.taskId,
+        jiraTicket: task.prMetadata.jiraTicket || '',
+        jiraLink: task.prMetadata.jiraLink || '',
+        description: task.prMetadata.description || '',
+        testingPlan: task.prMetadata.testingPlan || '',
+      } : undefined,
     }));
     
     return (

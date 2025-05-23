@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/lib/use-toast';
 import { useTaskFilterParams } from '@/lib/use-task-filter-params';
 import { formatStatus, getStatusColor } from '@/lib/utils';
+import { useDragOperations } from '@/lib/use-drag-operations';
 
 interface KanbanBoardProps {
   initialTasks: Task[];
@@ -22,7 +23,7 @@ export default function KanbanBoard({ initialTasks }: KanbanBoardProps) {
   const router = useRouter();
   const { toast } = useToast();
   const { updateUrlParams, getFiltersFromUrl } = useTaskFilterParams();
-  const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const { tasks, setTasks, moveTask } = useDragOperations(initialTasks);
   const [filteredTasks, setFilteredTasks] = useState<Task[]>(initialTasks);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   
@@ -53,21 +54,55 @@ export default function KanbanBoard({ initialTasks }: KanbanBoardProps) {
     ...tasksByStatus[TaskStatus.IN_PROGRESS],
     ...filteredTasks.filter(t => t.status === TaskStatus.PLANNING || t.status === TaskStatus.INVESTIGATION)
   ];
-  
-  // Update tasks when initialTasks change (from server) or apply initial filters from URL parameters
+    // Update filteredTasks when tasks change (from server) or apply initial filters from URL parameters
   useEffect(() => {
-    setTasks(initialTasks);
     // Apply any active filters (from URL or state)
-    applyFilters(searchQuery, statusFilter, initialTasks);
-  }, [initialTasks]);
-
-  // Refresh data periodically
+    applyFilters(searchQuery, statusFilter, tasks);
+  }, [tasks]);
+  // Refresh data periodically but not immediately after drag operations
   useEffect(() => {
-    const interval = setInterval(() => {
-      router.refresh();
-    }, 5000); // Refresh every 5 seconds
+    let refreshPaused = false;
+    let refreshTimeout: NodeJS.Timeout | null = null;
 
-    return () => clearInterval(interval);
+    const scheduleRefresh = () => {
+      if (!refreshPaused) {
+        refreshTimeout = setTimeout(() => {
+          router.refresh();
+          scheduleRefresh();
+        }, 30000); // Refresh every 30 seconds instead of 5 seconds
+      }
+    };
+
+    // Start the refresh cycle
+    scheduleRefresh();
+
+    // Pause refreshes when dragging starts
+    const handleDragStart = () => {
+      refreshPaused = true;
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+      }
+    };
+
+    // Resume refreshes 10 seconds after a drag operation completes
+    const handleDragComplete = () => {
+      setTimeout(() => {
+        refreshPaused = false;
+        scheduleRefresh();
+      }, 10000);
+    };
+
+    // Add event listeners for drag operations
+    document.addEventListener('dragstart', handleDragStart);
+    document.addEventListener('dragend', handleDragComplete);
+
+    return () => {
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+      }
+      document.removeEventListener('dragstart', handleDragStart);
+      document.removeEventListener('dragend', handleDragComplete);
+    };
   }, [router]);
 
   // Handle search and filtering
@@ -121,10 +156,11 @@ export default function KanbanBoard({ initialTasks }: KanbanBoardProps) {
     setStatusFilter('ALL');
     setFilteredTasks(tasks);
     updateUrlParams('', 'ALL');
-  };
-
-  // Handle drag and drop between columns
+  };  // Handle drag and drop between columns
   const handleDragEnd = async (result: any) => {
+    // Dispatch custom event to resume auto-refresh (with delay)
+    document.dispatchEvent(new Event('dragend'));
+    
     const { destination, source, draggableId } = result;
     
     // Return if dropped outside of a droppable area
@@ -136,69 +172,24 @@ export default function KanbanBoard({ initialTasks }: KanbanBoardProps) {
       destination.index === source.index
     ) return;
     
-    // Find the task that was moved
-    const task = tasks.find(t => t.id === draggableId);
-    if (!task) return;
-    
     // Check if task status needs updating (dropped in a different column)
     if (destination.droppableId !== source.droppableId) {
       const newStatus = destination.droppableId as TaskStatus;
       
-      // Don't update if the statuses are the same
-      if (task.status === newStatus) return;
+      // Use our custom hook to handle the move operation
+      const success = await moveTask(draggableId, newStatus);
       
-      try {
-        // Optimistically update UI
-        const updatedTasks = tasks.map(t => 
-          t.id === task.id 
-            ? {...t, status: newStatus} 
-            : t
-        );
-        setTasks(updatedTasks);
-          // Update the task status on the server
-        const response = await fetch(`/api/tasks/${task.id}/status`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-drag-operation': 'true'
-          },
-          body: JSON.stringify({
-            status: newStatus,
-            notes: `Task moved to ${formatStatus(newStatus)} via drag and drop`,
-          }),
+      // If the move was successful, apply the change to filteredTasks as well
+      if (success) {
+        // Update the filtered tasks to match
+        setFilteredTasks(prevTasks => {
+          const updatedTask = tasks.find(t => t.id === draggableId);
+          if (!updatedTask) return prevTasks;
+          
+          return prevTasks.map(t => 
+            t.id === draggableId ? updatedTask : t
+          );
         });
-        
-        if (!response.ok) {
-          throw new Error('Failed to update task status');
-        }
-        
-        // Show success toast
-        toast({
-          title: "Task moved",
-          description: `"${task.title}" moved to ${formatStatus(newStatus)}`,
-          variant: "success",
-        });
-        
-        // Refresh data from server
-        router.refresh();
-      } catch (error) {
-        console.error('Error updating task status:', error);
-        
-        // Revert optimistic update
-        setFilteredTasks(prevTasks => 
-          prevTasks.map(t => 
-            t.id === task.id 
-              ? {...t, status: task.status} 
-              : t
-          )
-        );
-        setTasks(prevTasks => 
-          prevTasks.map(t => 
-            t.id === task.id 
-              ? {...t, status: task.status} 
-              : t
-          )
-        );
       }
     }
   };
@@ -291,23 +282,36 @@ export default function KanbanBoard({ initialTasks }: KanbanBoardProps) {
             Reset Filters
           </Button>
         </div>
-      )}
-
-      {/* Kanban Board */}
-      <DragDropContext onDragEnd={handleDragEnd}>
+      )}      {/* Kanban Board */}
+      <DragDropContext 
+        onDragEnd={handleDragEnd}
+        onDragStart={() => {
+          // Dispatch custom event to pause auto-refresh
+          document.dispatchEvent(new Event('dragstart'));
+        }}
+      >
         <div className="flex gap-6 pb-8 overflow-x-auto">
           {displayStatuses.map(status => (
             <Droppable key={status} droppableId={status}>
-              {(provided, snapshot) => (
-                <div
+              {(provided, snapshot) => (                <div
                   ref={provided.innerRef}
                   {...provided.droppableProps}
-                  className={`flex flex-col h-full min-w-[320px] w-[320px] border rounded-xl ${getStatusColor(status)}`}
+                  className={`flex flex-col h-full min-w-[320px] w-[320px] border rounded-xl ${
+                    snapshot.isDraggingOver 
+                      ? 'ring-2 ring-primary ring-opacity-50 shadow-lg transition-all duration-200' 
+                      : ''
+                  } ${getStatusColor(status)}`}
                 >
                   <div className="p-4 border-b">
                     <h3 className="font-semibold">{formatStatus(status)}</h3>
                     <div className="text-xs text-muted-foreground mt-1">
                       {tasksByStatus[status].length} task{tasksByStatus[status].length !== 1 && 's'}
+                      
+                      {status === TaskStatus.DONE && (
+                        <span className="text-xs text-muted-foreground ml-1">
+                          (requires completed checklist)
+                        </span>
+                      )}
                     </div>
                   </div>
                   
@@ -318,15 +322,19 @@ export default function KanbanBoard({ initialTasks }: KanbanBoardProps) {
                         draggableId={task.id} 
                         index={index}
                       >
-                        {(provided, snapshot) => (
-                          <div
+                        {(provided, snapshot) => (                          <div
                             ref={provided.innerRef}
                             {...provided.draggableProps}
                             {...provided.dragHandleProps}
                             style={{
                               ...provided.draggableProps.style,
                               opacity: snapshot.isDragging ? 0.8 : 1,
+                              transition: 'opacity 0.2s, transform 0.2s',
+                              transform: snapshot.isDragging 
+                                ? `${provided.draggableProps.style?.transform} scale(1.02)` 
+                                : provided.draggableProps.style?.transform,
                             }}
+                            className="transition-all duration-200"
                           >
                             <TaskCard 
                               task={task} 

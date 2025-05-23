@@ -4,11 +4,11 @@ import { TaskStatus } from "@/lib/types";
 import { DEFAULT_PR_CHECKLIST } from "@/lib/types";
 
 export async function GET(req: NextRequest) {
-  try {
-    const tasks = await prisma.task.findMany({
+  try {    const tasks = await prisma.task.findMany({
       include: {
         statusHistory: true,
         prChecklist: true,
+        prMetadata: true,
       },
       orderBy: {
         updatedAt: "desc",
@@ -27,7 +27,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { title, description } = await req.json();
+    // Ensure database is healthy before proceeding    await checkDatabaseHealth();
+    
+    const { title, description, prMetadata } = await req.json();
 
     // Validate required fields
     if (!title || !description) {
@@ -35,9 +37,7 @@ export async function POST(req: NextRequest) {
         { error: "Title and description are required" },
         { status: 400 }
       );
-    }
-
-    // Create the task
+    }// Create the task
     const task = await prisma.task.create({
       data: {
         title,
@@ -49,18 +49,27 @@ export async function POST(req: NextRequest) {
             status: TaskStatus.INVESTIGATION,
             notes: "Task created",
           },
-        },
-        // Create PR checklist items
+        },        // Create PR checklist items
         prChecklist: {
           create: DEFAULT_PR_CHECKLIST.map((text) => ({
             text,
             checked: false,
           })),
         },
+        // Create PR metadata with provided values or empty strings
+        prMetadata: {
+          create: {
+            jiraTicket: prMetadata?.jiraTicket || "",
+            jiraLink: prMetadata?.jiraLink || "",
+            description: prMetadata?.description || "",
+            testingPlan: prMetadata?.testingPlan || "",
+          }
+        }
       },
       include: {
         statusHistory: true,
         prChecklist: true,
+        prMetadata: true,
       },
     });
 

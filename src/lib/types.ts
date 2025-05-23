@@ -18,6 +18,7 @@ export interface Task {
   status: TaskStatus;
   statusHistory: StatusHistory[];
   prChecklist: PRChecklistItem[];
+  prMetadata?: PRMetadata;
 }
 
 // Status history interface
@@ -35,6 +36,16 @@ export interface PRChecklistItem {
   taskId: string;
   text: string;
   checked: boolean;
+}
+
+// PR metadata interface for GitHub PR template
+export interface PRMetadata {
+  id: string;
+  taskId: string;
+  jiraTicket?: string;
+  jiraLink?: string;
+  description?: string;
+  testingPlan?: string;
 }
 
 // Default PR checklist items
