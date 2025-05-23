@@ -16,33 +16,33 @@ export function useTaskFilterParams() {
    */  const updateUrlParams = (query: string, status: TaskStatus | 'ALL') => {
     // Create a new URLSearchParams object
     const params = new URLSearchParams(searchParams.toString());
-    
+
     // Get existing values to check if we actually need to update the URL
     const currentQuery = searchParams.get('q') || '';
     const currentStatus = searchParams.get('status') || 'ALL';
-    
+
     // Only proceed if there's an actual change to avoid unnecessary history entries
     if (currentQuery === query && currentStatus === (status === 'ALL' ? 'ALL' : status)) {
       return; // No change, so don't update URL
     }
-    
+
     // Update or remove the search parameter
     if (query) {
       params.set('q', query);
     } else {
       params.delete('q');
     }
-    
+
     // Update or remove the status parameter
     if (status !== 'ALL') {
       params.set('status', status);
     } else {
       params.delete('status');
     }
-    
+
     // Create the new URL
     const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
-    
+
     // Update the URL without refreshing the page
     router.push(newUrl, { scroll: false });
   };
@@ -53,13 +53,13 @@ export function useTaskFilterParams() {
   const getFiltersFromUrl = () => {
     const query = searchParams.get('q') || '';
     const statusParam = searchParams.get('status');
-    
+
     // Validate that statusParam is actually a valid TaskStatus enum value
     let status: TaskStatus | 'ALL' = 'ALL';
     if (statusParam && Object.values(TaskStatus).includes(statusParam as TaskStatus)) {
       status = statusParam as TaskStatus;
     }
-    
+
     return { query, status };
   };
 

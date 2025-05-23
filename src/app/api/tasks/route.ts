@@ -4,7 +4,8 @@ import { TaskStatus } from "@/lib/types";
 import { DEFAULT_PR_CHECKLIST } from "@/lib/types";
 
 export async function GET(req: NextRequest) {
-  try {    const tasks = await prisma.task.findMany({
+  try {
+    const tasks = await prisma.task.findMany({
       include: {
         statusHistory: true,
         prChecklist: true,
@@ -28,7 +29,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     // Ensure database is healthy before proceeding    await checkDatabaseHealth();
-    
+
     const { title, description, prMetadata } = await req.json();
 
     // Validate required fields

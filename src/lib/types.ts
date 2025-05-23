@@ -1,7 +1,7 @@
 // Task status enum
 export enum TaskStatus {
   INVESTIGATION = "INVESTIGATION",
-  PLANNING = "PLANNING", 
+  PLANNING = "PLANNING",
   IN_PROGRESS = "IN_PROGRESS",
   IN_TESTING = "IN_TESTING",
   IN_REVIEW = "IN_REVIEW",

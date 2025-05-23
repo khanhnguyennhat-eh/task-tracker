@@ -11,19 +11,19 @@ export function useTaskFiltering(initialTasks: Task[]) {
   const { updateUrlParams, getFiltersFromUrl } = useTaskFilterParams();
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [filteredTasks, setFilteredTasks] = useState<Task[]>(initialTasks);
-  
+
   // Initialize from URL parameters or defaults
   const { query: initialQuery, status: initialStatus } = getFiltersFromUrl();
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'ALL'>(initialStatus);
-  
+
   // Update tasks when initialTasks change (from server) or apply initial filters
   useEffect(() => {
     setTasks(initialTasks);
     // Apply any active filters
     applyFilters(searchQuery, statusFilter, initialTasks);
   }, [initialTasks]);
-  
+
   // Apply filters and update URL
   const applyFilters = (query: string, status: TaskStatus | 'ALL', taskList = tasks) => {
     let filtered = taskList;
@@ -36,21 +36,21 @@ export function useTaskFiltering(initialTasks: Task[]) {
     // Apply search query
     if (query.trim()) {
       const searchLower = query.toLowerCase();
-      filtered = filtered.filter(task => 
-        task.title.toLowerCase().includes(searchLower) || 
+      filtered = filtered.filter(task =>
+        task.title.toLowerCase().includes(searchLower) ||
         task.description.toLowerCase().includes(searchLower) ||
-        task.statusHistory.some(history => 
+        task.statusHistory.some(history =>
           history.notes.toLowerCase().includes(searchLower)
         )
       );
     }
 
     setFilteredTasks(filtered);
-    
+
     // Update URL parameters
     updateUrlParams(query, status);
   };
-  
+
   // Handle search submission
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,7 +63,7 @@ export function useTaskFiltering(initialTasks: Task[]) {
     setStatusFilter(newFilter);
     applyFilters(searchQuery, newFilter);
   };
-  
+
   // Reset filters and URL
   const resetFilters = () => {
     setSearchQuery('');
@@ -71,7 +71,7 @@ export function useTaskFiltering(initialTasks: Task[]) {
     setFilteredTasks(tasks);
     updateUrlParams('', 'ALL');
   };
-  
+
   return {
     tasks,
     setTasks,

@@ -7,7 +7,7 @@ import { DEFAULT_PR_CHECKLIST } from "@/lib/types";
 export async function GET(req: NextRequest) {
   try {
     console.log('Creating a complex task with all relations...');
-    
+
     // Create a comprehensive task
     const task = await prisma.task.create({
       data: {

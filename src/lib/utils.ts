@@ -71,10 +71,10 @@ export function getStatusColor(status: TaskStatus): string {
 export function getNextStatus(currentStatus: TaskStatus): TaskStatus | null {
   const statusOrder = Object.values(TaskStatus);
   const currentIndex = statusOrder.indexOf(currentStatus);
-  
+
   if (currentIndex < statusOrder.length - 1) {
     return statusOrder[currentIndex + 1];
   }
-  
+
   return null; // No next status (task is done)
 }

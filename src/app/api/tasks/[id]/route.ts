@@ -6,7 +6,7 @@ export async function GET(
   context: { params: { id: string } }
 ) {
   try {
-    const taskId = context.params.id;    const task = await prisma.task.findUnique({
+    const taskId = context.params.id; const task = await prisma.task.findUnique({
       where: { id: taskId },
       include: {
         statusHistory: {
@@ -21,7 +21,7 @@ export async function GET(
 
     if (!task) {
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
-    }    return NextResponse.json(task);
+    } return NextResponse.json(task);
   } catch (error) {
     console.error(`Error fetching task ${context.params.id}:`, error);
     return NextResponse.json(
@@ -58,7 +58,7 @@ export async function PUT(
         statusHistory: true,
         prChecklist: true,
       },
-    });    return NextResponse.json(updatedTask);
+    }); return NextResponse.json(updatedTask);
   } catch (error) {
     console.error(`Error updating task ${context.params.id}:`, error);
     return NextResponse.json(
@@ -78,7 +78,7 @@ export async function DELETE(
     // Delete the task
     await prisma.task.delete({
       where: { id: taskId },
-    });    return NextResponse.json({ message: "Task deleted successfully" });
+    }); return NextResponse.json({ message: "Task deleted successfully" });
   } catch (error) {
     console.error(`Error deleting task ${context.params.id}:`, error);
     return NextResponse.json(

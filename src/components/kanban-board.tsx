@@ -1,19 +1,19 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import { Task, TaskStatus } from '@/lib/types';
-import TaskCard from '@/components/task-card';
-import CreateTaskDialog from '@/components/create-task-dialog';
-import TaskDetailsDialog from '@/components/task-details-dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Plus, Search, X, SlidersHorizontal } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useToast } from '@/lib/use-toast';
-import { useTaskFilterParams } from '@/lib/use-task-filter-params';
-import { formatStatus, getStatusColor } from '@/lib/utils';
-import { useDragOperations } from '@/lib/use-drag-operations';
+import React, { useState, useEffect } from "react";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import { Task, TaskStatus } from "@/lib/types";
+import TaskCard from "@/components/task-card";
+import CreateTaskDialog from "@/components/create-task-dialog";
+import TaskDetailsDialog from "@/components/task-details-dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Plus, Search, X, SlidersHorizontal } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/lib/use-toast";
+import { useTaskFilterParams } from "@/lib/use-task-filter-params";
+import { formatStatus, getStatusColor } from "@/lib/utils";
+import { useDragOperations } from "@/lib/use-drag-operations";
 
 interface KanbanBoardProps {
   initialTasks: Task[];
@@ -26,35 +26,41 @@ export default function KanbanBoard({ initialTasks }: KanbanBoardProps) {
   const { tasks, setTasks, moveTask } = useDragOperations(initialTasks);
   const [filteredTasks, setFilteredTasks] = useState<Task[]>(initialTasks);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  
+
   // Initialize from URL parameters or defaults
   const { query: initialQuery, status: initialStatus } = getFiltersFromUrl();
   const [searchQuery, setSearchQuery] = useState(initialQuery);
-  const [statusFilter, setStatusFilter] = useState<TaskStatus | 'ALL'>(initialStatus);
+  const [statusFilter, setStatusFilter] = useState<TaskStatus | "ALL">(
+    initialStatus
+  );
   const [showFilters, setShowFilters] = useState(false);
-  
+
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
-  
+
   // Group tasks by status - but only display the main workflow statuses
   const displayStatuses = [
-    TaskStatus.IN_PROGRESS, 
+    TaskStatus.IN_PROGRESS,
     TaskStatus.IN_TESTING,
-    TaskStatus.IN_REVIEW, 
-    TaskStatus.DONE
+    TaskStatus.IN_REVIEW,
+    TaskStatus.DONE,
   ];
-  
+
   const tasksByStatus = displayStatuses.reduce((acc, status) => {
-    acc[status] = filteredTasks.filter(task => task.status === status);
+    acc[status] = filteredTasks.filter((task) => task.status === status);
     return acc;
   }, {} as Record<TaskStatus, Task[]>);
-  
+
   // Put planning and investigation tasks into the "In Progress" column
   tasksByStatus[TaskStatus.IN_PROGRESS] = [
     ...tasksByStatus[TaskStatus.IN_PROGRESS],
-    ...filteredTasks.filter(t => t.status === TaskStatus.PLANNING || t.status === TaskStatus.INVESTIGATION)
+    ...filteredTasks.filter(
+      (t) =>
+        t.status === TaskStatus.PLANNING ||
+        t.status === TaskStatus.INVESTIGATION
+    ),
   ];
-    // Update filteredTasks when tasks change (from server) or apply initial filters from URL parameters
+  // Update filteredTasks when tasks change (from server) or apply initial filters from URL parameters
   useEffect(() => {
     // Apply any active filters (from URL or state)
     applyFilters(searchQuery, statusFilter, tasks);
@@ -93,15 +99,15 @@ export default function KanbanBoard({ initialTasks }: KanbanBoardProps) {
     };
 
     // Add event listeners for drag operations
-    document.addEventListener('dragstart', handleDragStart);
-    document.addEventListener('dragend', handleDragComplete);
+    document.addEventListener("dragstart", handleDragStart);
+    document.addEventListener("dragend", handleDragComplete);
 
     return () => {
       if (refreshTimeout) {
         clearTimeout(refreshTimeout);
       }
-      document.removeEventListener('dragstart', handleDragStart);
-      document.removeEventListener('dragend', handleDragComplete);
+      document.removeEventListener("dragstart", handleDragStart);
+      document.removeEventListener("dragend", handleDragComplete);
     };
   }, [router]);
 
@@ -111,35 +117,42 @@ export default function KanbanBoard({ initialTasks }: KanbanBoardProps) {
     applyFilters(searchQuery, statusFilter);
   };
 
-  const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newFilter = e.target.value as TaskStatus | 'ALL';
+  const handleStatusFilterChange = (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    const newFilter = e.target.value as TaskStatus | "ALL";
     setStatusFilter(newFilter);
     applyFilters(searchQuery, newFilter);
   };
 
   // Apply filters and update URL parameters
-  const applyFilters = (query: string, status: TaskStatus | 'ALL', taskList = tasks) => {
+  const applyFilters = (
+    query: string,
+    status: TaskStatus | "ALL",
+    taskList = tasks
+  ) => {
     let filtered = taskList;
 
     // Apply status filter
-    if (status !== 'ALL') {
-      filtered = filtered.filter(task => task.status === status);
+    if (status !== "ALL") {
+      filtered = filtered.filter((task) => task.status === status);
     }
 
     // Apply search query
     if (query.trim()) {
       const searchLower = query.toLowerCase();
-      filtered = filtered.filter(task => 
-        task.title.toLowerCase().includes(searchLower) || 
-        task.description.toLowerCase().includes(searchLower) ||
-        task.statusHistory.some(history => 
-          history.notes.toLowerCase().includes(searchLower)
-        )
+      filtered = filtered.filter(
+        (task) =>
+          task.title.toLowerCase().includes(searchLower) ||
+          task.description.toLowerCase().includes(searchLower) ||
+          task.statusHistory.some((history) =>
+            history.notes.toLowerCase().includes(searchLower)
+          )
       );
     }
 
     setFilteredTasks(filtered);
-    
+
     // Update URL parameters
     updateUrlParams(query, status);
   };
@@ -152,59 +165,55 @@ export default function KanbanBoard({ initialTasks }: KanbanBoardProps) {
 
   // Reset filters
   const resetFilters = () => {
-    setSearchQuery('');
-    setStatusFilter('ALL');
+    setSearchQuery("");
+    setStatusFilter("ALL");
     setFilteredTasks(tasks);
-    updateUrlParams('', 'ALL');
-  };  // Handle drag and drop between columns
+    updateUrlParams("", "ALL");
+  }; // Handle drag and drop between columns
   const handleDragEnd = async (result: any) => {
     // Dispatch custom event to resume auto-refresh (with delay)
-    document.dispatchEvent(new Event('dragend'));
-    
+    document.dispatchEvent(new Event("dragend"));
+
     const { destination, source, draggableId } = result;
-    
+
     // Return if dropped outside of a droppable area
     if (!destination) return;
-    
+
     // Return if dropped in the same position
     if (
       destination.droppableId === source.droppableId &&
       destination.index === source.index
-    ) return;
-      // Check if task status needs updating (dropped in a different column)
+    )
+      return;
+    // Check if task status needs updating (dropped in a different column)
     if (destination.droppableId !== source.droppableId) {
       const newStatus = destination.droppableId as TaskStatus;
-      
+
       // Use our custom hook to handle the move operation
       // This now returns immediately after the UI update
       const success = await moveTask(draggableId, newStatus);
-      
+
       // If the UI update was successful, update filtered tasks immediately
       if (success) {
         // Apply the same update to filteredTasks
-        setFilteredTasks(prevTasks => {
-          const taskToUpdate = prevTasks.find(t => t.id === draggableId);
+        setFilteredTasks((prevTasks) => {
+          const taskToUpdate = prevTasks.find((t) => t.id === draggableId);
           if (!taskToUpdate) return prevTasks;
-          
+
           // Create an updated version with the new status
           const updatedTask = { ...taskToUpdate, status: newStatus };
-          
-          return prevTasks.map(t => 
-            t.id === draggableId ? updatedTask : t
-          );
+
+          return prevTasks.map((t) => (t.id === draggableId ? updatedTask : t));
         });
       }
     }
   };
-  
+
   return (
     <div className="space-y-6">
       {/* Search and Filters */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <form 
-          onSubmit={handleSearch}
-          className="relative max-w-[320px] w-full"
-        >
+        <form onSubmit={handleSearch} className="relative max-w-[320px] w-full">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search tasks..."
@@ -213,11 +222,11 @@ export default function KanbanBoard({ initialTasks }: KanbanBoardProps) {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
           {searchQuery && (
-            <button 
+            <button
               type="button"
               onClick={() => {
-                setSearchQuery('');
-                applyFilters('', statusFilter);
+                setSearchQuery("");
+                applyFilters("", statusFilter);
               }}
               className="absolute right-3 top-2.5"
             >
@@ -225,7 +234,7 @@ export default function KanbanBoard({ initialTasks }: KanbanBoardProps) {
             </button>
           )}
         </form>
-        
+
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
@@ -235,7 +244,7 @@ export default function KanbanBoard({ initialTasks }: KanbanBoardProps) {
           >
             <SlidersHorizontal className="h-4 w-4" />
             Filters
-            {statusFilter !== 'ALL' && (
+            {statusFilter !== "ALL" && (
               <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
                 1
               </span>
@@ -252,7 +261,6 @@ export default function KanbanBoard({ initialTasks }: KanbanBoardProps) {
           </Button>
         </div>
       </div>
-      
       {/* Expanded Filters */}
       {showFilters && (
         <div className="bg-background border rounded-lg p-4 flex flex-wrap gap-4 items-center justify-between">
@@ -261,13 +269,13 @@ export default function KanbanBoard({ initialTasks }: KanbanBoardProps) {
               <label className="text-sm text-muted-foreground block mb-1">
                 Status
               </label>
-              <select 
+              <select
                 className="rounded-md border border-input bg-background px-3 py-2 h-9 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 min-w-[180px]"
                 value={statusFilter}
                 onChange={handleStatusFilterChange}
               >
                 <option value="ALL">All Statuses</option>
-                {Object.values(TaskStatus).map(status => (
+                {Object.values(TaskStatus).map((status) => (
                   <option key={status} value={status}>
                     {formatStatus(status)}
                   </option>
@@ -275,7 +283,7 @@ export default function KanbanBoard({ initialTasks }: KanbanBoardProps) {
               </select>
             </div>
           </div>
-          
+
           <Button
             variant="outline"
             onClick={resetFilters}
@@ -285,31 +293,33 @@ export default function KanbanBoard({ initialTasks }: KanbanBoardProps) {
             Reset Filters
           </Button>
         </div>
-      )}      {/* Kanban Board */}
-      <DragDropContext 
+      )}{" "}
+      {/* Kanban Board */}
+      <DragDropContext
         onDragEnd={handleDragEnd}
         onDragStart={() => {
           // Dispatch custom event to pause auto-refresh
-          document.dispatchEvent(new Event('dragstart'));
+          document.dispatchEvent(new Event("dragstart"));
         }}
       >
         <div className="flex gap-6 pb-8 overflow-x-auto">
-          {displayStatuses.map(status => (
+          {displayStatuses.map((status) => (
             <Droppable key={status} droppableId={status}>
-              {(provided, snapshot) => (                <div
+              {(provided, snapshot) => (
+                <div
                   ref={provided.innerRef}
                   {...provided.droppableProps}
                   className={`flex flex-col h-full min-w-[320px] w-[320px] border rounded-xl ${
-                    snapshot.isDraggingOver 
-                      ? 'ring-2 ring-primary ring-opacity-50 shadow-lg transition-all duration-200' 
-                      : ''
+                    snapshot.isDraggingOver
+                      ? "ring-2 ring-primary ring-opacity-50 shadow-lg transition-all duration-200"
+                      : ""
                   } ${getStatusColor(status)}`}
                 >
                   <div className="p-4 border-b">
                     <h3 className="font-semibold">{formatStatus(status)}</h3>
                     <div className="text-xs text-muted-foreground mt-1">
-                      {tasksByStatus[status].length} task{tasksByStatus[status].length !== 1 && 's'}
-                      
+                      {tasksByStatus[status].length} task
+                      {tasksByStatus[status].length !== 1 && "s"}
                       {status === TaskStatus.DONE && (
                         <span className="text-xs text-muted-foreground ml-1">
                           (requires completed checklist)
@@ -317,30 +327,31 @@ export default function KanbanBoard({ initialTasks }: KanbanBoardProps) {
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-[60vh]">
                     {tasksByStatus[status].map((task, index) => (
-                      <Draggable 
-                        key={task.id} 
-                        draggableId={task.id} 
+                      <Draggable
+                        key={task.id}
+                        draggableId={task.id}
                         index={index}
                       >
-                        {(provided, snapshot) => (                          <div
+                        {(provided, snapshot) => (
+                          <div
                             ref={provided.innerRef}
                             {...provided.draggableProps}
                             {...provided.dragHandleProps}
                             style={{
                               ...provided.draggableProps.style,
                               opacity: snapshot.isDragging ? 0.8 : 1,
-                              transition: 'opacity 0.2s, transform 0.2s',
-                              transform: snapshot.isDragging 
-                                ? `${provided.draggableProps.style?.transform} scale(1.02)` 
+                              transition: "opacity 0.2s, transform 0.2s",
+                              transform: snapshot.isDragging
+                                ? `${provided.draggableProps.style?.transform} scale(1.02)`
                                 : provided.draggableProps.style?.transform,
                             }}
                             className="transition-all duration-200"
                           >
-                            <TaskCard 
-                              task={task} 
+                            <TaskCard
+                              task={task}
                               onClick={() => handleTaskClick(task)}
                               isKanban={true}
                               isDraggable={true}
@@ -350,7 +361,7 @@ export default function KanbanBoard({ initialTasks }: KanbanBoardProps) {
                       </Draggable>
                     ))}
                     {provided.placeholder}
-                    
+
                     {tasksByStatus[status].length === 0 && (
                       <div className="flex items-center justify-center h-24 text-sm text-muted-foreground">
                         No tasks
@@ -363,29 +374,28 @@ export default function KanbanBoard({ initialTasks }: KanbanBoardProps) {
           ))}
         </div>
       </DragDropContext>
-
       {/* Empty State */}
-      {filteredTasks.length === 0 && statusFilter === 'ALL' && searchQuery === '' && (
-        <div className="flex flex-col items-center justify-center bg-muted/40 rounded-lg p-12 text-center">
-          <div className="rounded-full bg-background p-3 mb-4">
-            <Search className="h-6 w-6 text-muted-foreground" />
+      {filteredTasks.length === 0 &&
+        statusFilter === "ALL" &&
+        searchQuery === "" && (
+          <div className="flex flex-col items-center justify-center bg-muted/40 rounded-lg p-12 text-center">
+            <div className="rounded-full bg-background p-3 mb-4">
+              <Search className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-medium">No tasks yet</h3>
+            <p className="text-muted-foreground mt-2 mb-6">
+              Get started by creating your first task
+            </p>
+            <Button onClick={() => setIsCreateDialogOpen(true)}>
+              Create your first task
+            </Button>
           </div>
-          <h3 className="text-lg font-medium">No tasks yet</h3>
-          <p className="text-muted-foreground mt-2 mb-6">
-            Get started by creating your first task
-          </p>
-          <Button onClick={() => setIsCreateDialogOpen(true)}>
-            Create your first task
-          </Button>
-        </div>
-      )}
-      
+        )}
       {/* Task Creation Dialog */}
       <CreateTaskDialog
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
       />
-
       {/* Task Details Dialog */}
       <TaskDetailsDialog
         task={selectedTask}

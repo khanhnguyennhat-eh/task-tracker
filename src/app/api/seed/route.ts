@@ -6,7 +6,7 @@ import { TaskStatus } from "@/lib/types";
 export async function GET(req: NextRequest) {
   try {
     console.log('Attempting to create a new task via API endpoint...');
-    
+
     // Create a simple task
     const task = await prisma.task.create({
       data: {

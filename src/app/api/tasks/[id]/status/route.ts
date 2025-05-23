@@ -40,7 +40,7 @@ export async function POST(
     const newStatusIndex = statusOrder.indexOf(status as TaskStatus);    // Allow direct transitions when the request includes a dragOperation flag
     // This is used for drag-and-drop operations in the Kanban board
     const isDragOperation = req.headers.get('x-drag-operation') === 'true';
-    
+
     if (!isDragOperation && newStatusIndex !== currentStatusIndex + 1) {
       return NextResponse.json(
         { error: "Invalid status transition. Status must progress in sequence." },
@@ -92,7 +92,7 @@ export async function POST(
           notes,
         },
       }),
-    ]);    return NextResponse.json(updatedTask);
+    ]); return NextResponse.json(updatedTask);
   } catch (error) {
     console.error(`Error updating status for task ${context.params.id}:`, error);
     return NextResponse.json(
